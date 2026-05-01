@@ -1,27 +1,13 @@
-function [P_ind_kw, P_perf_kw, P_par_kw, P_sub_kw, P_misc_kw, P_motor_kw, W_final, W_comb_gasto] = ...
-    Calcular_Fase(W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min)
-    % CALCULAR_FASE Função universal para calcular desempenho e consumo em 
+function [potencias, W_final] = Calcular_Fase(W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min)
+    % CALCULAR_FASE Função universal para calcular desempenho e consumo em
     % qualquer fase de voo do helicóptero (Pairado, Cruzeiro, Subida ou Descida).
     %
-    % Entradas (Inputs):
-    %   W         - Peso da aeronave no início da fase [lb]
-    %   h_solo    - Altura do rotor em relação ao solo [ft]. (Use 'inf' para voo OGE/livre)
-    %   Zp        - Altitude de pressão média na fase [ft]
-    %   delta_ISA - Variação de temperatura da atmosfera padrão ISA [°C]
-    %   heli      - Struct contendo os parâmetros do helicóptero
-    %   V_kt      - Velocidade horizontal de avanço (True Airspeed - TAS) [nós - kt]
-    %   Vc_fpm    - Razão de subida/descida (Rate of Climb - RoC) [ft/min]
-    %   tempo_min - Tempo de duração da fase [minutos]
+    % Entradas:
+    %   W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min
     %
-    % Saídas (Outputs):
-    %   P_ind_kw     - Potência induzida requerida no rotor principal [kW]
-    %   P_perf_kw    - Potência de perfil (arrasto aerodinâmico das pás) [kW]
-    %   P_par_kw     - Potência parasita (arrasto da fuselagem ao avanço) [kW]
-    %   P_sub_kw     - Potência gasta na variação de energia potencial (subida/descida) [kW]
-    %   P_misc_kw    - Potência de miscelânea (perdas de transmissão e rotor de cauda) [kW]
-    %   P_motor_kw   - Potência total exigida no eixo do motor [kW]
-    %   W_final      - Peso atualizado da aeronave no final da fase [lb]
-    %   W_comb_gasto - Quantidade de combustível consumido durante a fase [lb]
+    % Saídas:
+    %   potencias - struct com potências [kW]: P_ind, P_perf, P_par, P_vert, P_misc, P_tot
+    %   W_final  - Peso atualizado ao fim da fase [lb]  →  comb = W - W_final
 
     %% 1. Propriedades Atmosféricas e Inicialização
     [rho, ~, ~, ~] = ISA(delta_ISA, Zp);
@@ -89,18 +75,15 @@ function [P_ind_kw, P_perf_kw, P_par_kw, P_sub_kw, P_misc_kw, P_motor_kw, W_fina
     %% 3. Saída das Potências em kW
     Fator = rho * heli.A * heli.Omega_R^3;
     hp2kw = 0.7457;
-    
-    P_ind_kw   = (Fator * CP_ind / 550) * hp2kw;
-    P_perf_kw  = (Fator * CP_perf / 550) * hp2kw;
-    P_par_kw   = (Fator * CP_par / 550) * hp2kw;
-    P_sub_kw   = (Fator * CP_sub / 550) * hp2kw;
-    P_misc_kw  = (Fator * CP_misc / 550) * hp2kw;
-    P_motor_kw = (Fator * CP_motor / 550) * hp2kw;
-    
+
+    potencias.P_ind  = (Fator * CP_ind   / 550) * hp2kw;
+    potencias.P_perf = (Fator * CP_perf  / 550) * hp2kw;
+    potencias.P_par  = (Fator * CP_par   / 550) * hp2kw;
+    potencias.P_vert = (Fator * CP_sub   / 550) * hp2kw;
+    potencias.P_misc = (Fator * CP_misc  / 550) * hp2kw;
+    potencias.P_tot  = (Fator * CP_motor / 550) * hp2kw;
+
     %% 4. Consumo de Combustível e Atualização de Peso
     fluxo_comb_lb_hr = (Fator * CP_motor / 550) * heli.SFC;
-    W_comb_gasto = fluxo_comb_lb_hr * (tempo_min / 60);
-    
-    % Peso final para ser passado para a próxima etapa no script principal
-    W_final = W - W_comb_gasto;
+    W_final = W - fluxo_comb_lb_hr * (tempo_min / 60);
 end

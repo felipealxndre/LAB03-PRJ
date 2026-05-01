@@ -1,28 +1,20 @@
-function [P_ind_kw, P_perf_kw, P_par_kw, P_sub_kw, P_misc_kw, P_motor_kw, W_final, W_comb_gasto, W_medio] = ...
-    Calcular_Fase_PesoMedio(W_inicial, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min)
-    % CALCULAR_FASE_PESOMEDIO Aplica o método Preditor-Corretor para obter 
-    % as potências e o consumo exatos utilizando o peso médio da aeronave 
-    % durante a fase de voo.
+function [potencias, W_final] = Calcular_Fase_PesoMedio(W_inicial, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min)
+    % CALCULAR_FASE_PESOMEDIO Aplica o método Preditor-Corretor para obter
+    % as potências exatas utilizando o peso médio da aeronave.
     %
-    % Requer a função 'Calcular_Fase' no mesmo diretório.
+    % Saídas:
+    %   potencias - struct com potências [kW]: P_ind, P_perf, P_par, P_vert, P_misc, P_tot
+    %   W_final - Peso atualizado ao fim da fase [lb]  →  comb = W_inicial - W_final
 
-    %% 1. Passo Preditor
-    % Estima o combustível gasto considerando que a aeronave voou o tempo 
-    % todo pesando o W_inicial.
-    [~, ~, ~, ~, ~, ~, ~, fuel_estimado] = Calcular_Fase(...
-        W_inicial, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min);
+    % --- Preditor: estima W_final com peso inicial ---
+    [~, W_pred] = Calcular_Fase(W_inicial, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min);
 
-    %% 2. Cálculo do Peso Médio
-    % O peso médio é o peso inicial menos metade do combustível que será gasto.
-    W_medio = W_inicial - (fuel_estimado / 2);
+    % --- Peso médio na fase ---
+    W_medio = (W_inicial + W_pred) / 2;
 
-    %% 3. Passo Corretor
-    % Calcula as potências definitivas e o combustível real gasto utilizando 
-    % o peso médio ao longo da fase.
-    [P_ind_kw, P_perf_kw, P_par_kw, P_sub_kw, P_misc_kw, P_motor_kw, ~, W_comb_gasto] = Calcular_Fase(...
-        W_medio, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min);
+    % --- Corretor: recalcula potências e W_final no peso médio ---
+    [potencias, W_final_medio] = Calcular_Fase(W_medio, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min);
 
-    %% 4. Atualização do Peso Final
-    % O peso final real é o peso inicial menos o combustível efetivamente gasto.
-    W_final = W_inicial - W_comb_gasto;
+    % --- Atualização do peso final usando o consumo corrigido ---
+    W_final = W_inicial - (W_medio - W_final_medio);
 end

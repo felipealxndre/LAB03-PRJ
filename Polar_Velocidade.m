@@ -35,8 +35,8 @@ function [V_tas, V_gs, Vc_v, Vy, RoC_max, Vvm, Vrm, Vc_auto, VrM] = Polar_Veloci
     %% 2. VARREDURA DE PERFORMANCE AERODINÂMICA
     for k = 1:length(V_tas)
         % Calcula a potência necessária para voo nivelado (Vc = 0)
-        [~,~,~,~,~,Pk] = Calcular_Fase(W, inf, Zp, dI, heli, V_tas(k), 0, 1);
-        Preq_hp = Pk/0.7457;
+        [r_k, ~] = Calcular_Fase(W, inf, Zp, dI, heli, V_tas(k), 0, 1);
+        Preq_hp = r_k.P_tot / 0.7457;
 
         % Curva Superior (Subida): Vc = (Pot_Sobra * 33000) / W
         Vc_v(k) = ((P_disp_hp - Preq_hp) * 33000) / W;

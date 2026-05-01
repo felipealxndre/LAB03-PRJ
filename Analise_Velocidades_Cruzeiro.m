@@ -34,8 +34,8 @@ function [V_mr, V_md, V_max, V_tas_out, P_tot_hp_out] = Analise_Velocidades_Cruz
 
     for i = 1:N
         % Chama a função Calcular_Fase para Voo Nivelado (Vc = 0) e OGE (h = inf)
-        [~, ~, ~, ~, ~, P_mot_kw, ~, ~] = Calcular_Fase(W, inf, Zp, delta_ISA, heli, V_tas_kt(i), 0, 1);
-        P_tot_hp(i) = P_mot_kw * kw2hp;
+        [r_i, ~] = Calcular_Fase(W, inf, Zp, delta_ISA, heli, V_tas_kt(i), 0, 1);
+        P_tot_hp(i) = r_i.P_tot * kw2hp;
     end
 
     %% 3. Cálculos das Velocidades Notáveis
@@ -85,12 +85,12 @@ function [V_mr, V_md, V_max, V_tas_out, P_tot_hp_out] = Analise_Velocidades_Cruz
         plot(V_tas_kt, P_tot_hp, 'k-', 'LineWidth', 2.5, 'DisplayName', 'Potência Necessária Total');
         yline(P_disp_hp, 'r-', 'LineWidth', 2, 'DisplayName', 'Potência Máx. Disponível');
         
-        % Marcadores V_md (Autonomia)
-        plot(V_md, P_min, 'bo', 'MarkerFaceColor', 'b', 'MarkerSize', 8, 'DisplayName', sprintf('V_{md}/V_{DM} = %.1f kt', V_md));
+        % Marcadores V_md (Autonomia Máxima = VAM)
+        plot(V_md, P_min, 'bo', 'MarkerFaceColor', 'b', 'MarkerSize', 8, 'DisplayName', sprintf('V_{md}/V_{AM} = %.1f kt', V_md));
         plot([V_md V_md], [0 P_min], 'b:', 'LineWidth', 1.5, 'HandleVisibility', 'off');
         
-        % Marcadores V_mr (Alcance) e Reta Tangente
-        plot(V_mr, P_mr, 'go', 'MarkerFaceColor', 'g', 'MarkerSize', 8, 'DisplayName', sprintf('V_{mr}/V_{AM} = %.1f kt', V_mr));
+        % Marcadores V_mr (Distância Máxima = VDM) e Reta Tangente
+        plot(V_mr, P_mr, 'go', 'MarkerFaceColor', 'g', 'MarkerSize', 8, 'DisplayName', sprintf('V_{mr}/V_{DM} = %.1f kt', V_mr));
         plot([V_mr V_mr], [0 P_mr], 'g:', 'LineWidth', 1.5, 'HandleVisibility', 'off');
         
         % Construção geométrica da reta tangente (P = m * V_gs)

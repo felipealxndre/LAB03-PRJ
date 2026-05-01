@@ -29,15 +29,14 @@ function Plot_Curvas_Potencia(W, Zp, delta_ISA, heli)
     
     for i = 1:N
         % Chama a sua função para Voo Nivelado (Vc = 0) e OGE (h_solo = inf)
-        [P_i, P_p, P_pa, ~, P_m, P_mot, ~, ~] = ...
-            Calcular_Fase(W, inf, Zp, delta_ISA, heli, V_kt(i), 0, 1);
-        
+        [r, ~] = Calcular_Fase(W, inf, Zp, delta_ISA, heli, V_kt(i), 0, 1);
+
         % Armazena e converte os resultados para HP
-        P_ind_hp(i)  = P_i * kw2hp;
-        P_perf_hp(i) = P_p * kw2hp;
-        P_par_hp(i)  = P_pa * kw2hp;
-        P_misc_hp(i) = P_m * kw2hp;
-        P_tot_hp(i)  = P_mot * kw2hp;
+        P_ind_hp(i)  = r.P_ind  * kw2hp;
+        P_perf_hp(i) = r.P_perf * kw2hp;
+        P_par_hp(i)  = r.P_par  * kw2hp;
+        P_misc_hp(i) = r.P_misc * kw2hp;
+        P_tot_hp(i)  = r.P_tot  * kw2hp;
     end
     
     %% 3. Potência Disponível
