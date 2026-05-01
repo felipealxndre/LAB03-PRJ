@@ -1,4 +1,4 @@
-function [V_tas, V_gs, Vc_v, Vy, RoC_max, Vvm, Vrm] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v)
+function [V_tas, V_gs, Vc_v, Vy, RoC_max, Vvm, Vrm, Vc_auto, VrM] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v)
     % POLAR_VELOCIDADE - Gera o envelope de performance vertical do helicóptero.
     %
     % INPUTS:

@@ -3,37 +3,18 @@
 % Aeronave: AH-1S Cobra
 % =========================================================================
 clear; clc; close all;
-if ~exist('results', 'dir'), mkdir('results'); end
-diary('results/CASO1_resultado.txt'); diary on;
+pasta_caso = 'results/CASO1';
+if ~exist(pasta_caso, 'dir'), mkdir(pasta_caso); end
+diary(fullfile(pasta_caso, 'resultado.txt')); diary on;
 
 %% 1. PARÂMETROS GERAIS E DA AERONAVE
 % Configuração de vento para toda a missão (Positivo = Cauda, Negativo = Proa)
 V_vento = 0;                 % Velocidade do vento [kt]
 
 % --- Pesos e Capacidades ---
-heli.W_empty   = 6598;       % Peso vazio da aeronave [lb]
-heli.MTOW      = 10000;      % Peso Máximo de Decolagem [lb]
-heli.fuel_cap  = 1684;       % Capacidade máxima de combustível [lb]
-
-% --- Rotor Principal ---
-heli.R         = 22;         % Raio do rotor principal [ft]
-heli.c         = 2.25;       % Corda média das pás [ft]
-heli.b         = 2;          % Número de pás do rotor
-heli.sigma     = 0.065;      % Solidez do rotor
-heli.Omega_R   = 746;        % Velocidade na ponta da pá (Tip Speed) [ft/s]
-heli.A         = pi*heli.R^2;% Área do disco do rotor [ft^2]
-
-% --- Aerodinâmica / Desempenho ---
-heli.Cd0       = 0.012;      % Coeficiente de arrasto de perfil das pás
-heli.ki        = 1.15;       % Fator de correção da potência induzida
-heli.eta_m     = 0.85;       % Eficiência mecânica da transmissão
-heli.P_disp_hp = 1290;       % Potência disponível no motor [hp]
-heli.P_disp_kw = heli.P_disp_hp*0.7457; % Conversão da potência para [kW]
-heli.f         = 19.45;      % Área de placa plana equivalente [ft^2]
-heli.SFC       = 0.458;      % Consumo Específico de Combustível [lb/hp.hr]
-
-% --- Fuselagem ---
-heli.h         = 12;         % Altura do cubo do rotor ao solo [ft]
+heli = jsondecode(fileread('heli_params.json'));
+heli.A         = pi * heli.R^2;
+heli.P_disp_kw = heli.P_disp_hp * 0.7457;
 
 %% 2. INICIALIZAÇÃO DA ESTRUTURA DA MISSÃO
 % Criando um Array de Structs para armazenar os dados de forma conectada
@@ -65,8 +46,9 @@ fprintf('FASE 1: Pairado Inicial IGE Concluída.\n');
 missao(2).nome = 'Subida na Vy';
 Zp_2 = 2500; dT_2 = 20; Vc_sub_fpm = 1000; tempo_2 = (5000-0)/Vc_sub_fpm; 
 
-[~,~,~, Vy_2, ~, Vvm_2, Vrm_2] = Polar_Velocidade(W_atual, Zp_2, dT_2, heli, Vc_sub_fpm, false, [], V_vento);
-[VAM_2, VDM_2, ~] = Analise_Velocidades_Cruzeiro(W_atual, Zp_2, dT_2, heli, V_vento, false);
+W_f2 = W_atual;
+[V_pol_2, ~, Vc_v_2, Vy_2, ~, Vvm_2, Vrm_2, Vc_auto_2, VrM_2] = Polar_Velocidade(W_atual, Zp_2, dT_2, heli, Vc_sub_fpm, false, [], V_vento);
+[VAM_2, VDM_2, V_max_2, V_cru_2, P_cru_2] = Analise_Velocidades_Cruzeiro(W_atual, Zp_2, dT_2, heli, V_vento, false);
 
 [missao(2).P_ind, missao(2).P_perf, missao(2).P_par, missao(2).P_vert, missao(2).P_misc, missao(2).P_tot, W_atual, missao(2).comb, ~] = ...
     Calcular_Fase_PesoMedio(W_atual, inf, Zp_2, dT_2, heli, Vy_2, Vc_sub_fpm, tempo_2);
@@ -79,8 +61,9 @@ fprintf('FASE 2: Subida   | Vy = %.1f kt | VAM = %.1f kt (≅ Vrm = %.1f kt) | V
 missao(3).nome = 'Nivelado na VAM';
 Zp_3 = 5000; dT_3 = 20; distancia_3 = 400;
 
-[~,~,~, Vy_3, ~, Vvm_3, Vrm_3] = Polar_Velocidade(W_atual, Zp_3, dT_3, heli, 0, false, [], V_vento);
-[VAM_3, VDM_3, ~] = Analise_Velocidades_Cruzeiro(W_atual, Zp_3, dT_3, heli, V_vento, false);
+W_f3 = W_atual;
+[V_pol_3, ~, Vc_v_3, Vy_3, ~, Vvm_3, Vrm_3, Vc_auto_3, VrM_3] = Polar_Velocidade(W_atual, Zp_3, dT_3, heli, 0, false, [], V_vento);
+[VAM_3, VDM_3, V_max_3, V_cru_3, P_cru_3] = Analise_Velocidades_Cruzeiro(W_atual, Zp_3, dT_3, heli, V_vento, false);
 
 V_mr_gs = VAM_3 + V_vento; 
 tempo_3 = (distancia_3/V_mr_gs)*60; 
@@ -96,8 +79,9 @@ fprintf('FASE 3: Cruzeiro | Vy = %.1f kt | VAM = %.1f kt (≅ Vrm = %.1f kt) | V
 missao(4).nome = 'Nivelado na VDM';
 Zp_4 = 5000; dT_4 = 20; tempo_4 = 30;
 
-[~,~,~, Vy_4, ~, Vvm_4, Vrm_4] = Polar_Velocidade(W_atual, Zp_4, dT_4, heli, 0, false, [], V_vento);
-[VAM_4, VDM_4, ~] = Analise_Velocidades_Cruzeiro(W_atual, Zp_4, dT_4, heli, V_vento, false);
+W_f4 = W_atual;
+[V_pol_4, ~, Vc_v_4, Vy_4, ~, Vvm_4, Vrm_4, Vc_auto_4, VrM_4] = Polar_Velocidade(W_atual, Zp_4, dT_4, heli, 0, false, [], V_vento);
+[VAM_4, VDM_4, V_max_4, V_cru_4, P_cru_4] = Analise_Velocidades_Cruzeiro(W_atual, Zp_4, dT_4, heli, V_vento, false);
 
 [missao(4).P_ind, missao(4).P_perf, missao(4).P_par, missao(4).P_vert, missao(4).P_misc, missao(4).P_tot, W_atual, missao(4).comb, ~] = ...
     Calcular_Fase_PesoMedio(W_atual, inf, Zp_4, dT_4, heli, VDM_4, 0, tempo_4);
@@ -111,8 +95,9 @@ missao(5).nome = 'Descida na Vy';
 Zp_5 = 2500; dT_5 = 20; Vc_des_fpm = -1000;
 tempo_5 = (5000-0)/abs(Vc_des_fpm);
 
-[~,~,~, Vy_5, ~, Vvm_5, Vrm_5] = Polar_Velocidade(W_atual, Zp_5, dT_5, heli, Vc_des_fpm, false, [], V_vento);
-[VAM_5, VDM_5, ~] = Analise_Velocidades_Cruzeiro(W_atual, Zp_5, dT_5, heli, V_vento, false);
+W_f5 = W_atual;
+[V_pol_5, ~, Vc_v_5, Vy_5, ~, Vvm_5, Vrm_5, Vc_auto_5, VrM_5] = Polar_Velocidade(W_atual, Zp_5, dT_5, heli, Vc_des_fpm, false, [], V_vento);
+[VAM_5, VDM_5, V_max_5, V_cru_5, P_cru_5] = Analise_Velocidades_Cruzeiro(W_atual, Zp_5, dT_5, heli, V_vento, false);
 
 [missao(5).P_ind, missao(5).P_perf, missao(5).P_par, missao(5).P_vert, missao(5).P_misc, missao(5).P_tot, W_atual, missao(5).comb, ~] = ...
     Calcular_Fase_PesoMedio(W_atual, inf, Zp_5, dT_5, heli, Vy_5, Vc_des_fpm, tempo_5);
@@ -177,4 +162,15 @@ if margem >= 0
 else
     fprintf('VERIFICAÇÃO DE COMBUSTÍVEL: FALHA - Combustível insuficiente (faltaram %.2f lb).\n', abs(margem));
 end
+
+%% EXPORTAR DADOS PARA PYTHON
+pol2 = struct('W', W_f2, 'Zp', Zp_2, 'dT', dT_2, 'V_tas', V_pol_2, 'Vc_v', Vc_v_2, 'Vc_auto', Vc_auto_2, 'Vy', Vy_2, 'VrM', VrM_2, 'Vvm', Vvm_2, 'Vrm', Vrm_2);
+pol3 = struct('W', W_f3, 'Zp', Zp_3, 'dT', dT_3, 'V_tas', V_pol_3, 'Vc_v', Vc_v_3, 'Vc_auto', Vc_auto_3, 'Vy', Vy_3, 'VrM', VrM_3, 'Vvm', Vvm_3, 'Vrm', Vrm_3);
+pol4 = struct('W', W_f4, 'Zp', Zp_4, 'dT', dT_4, 'V_tas', V_pol_4, 'Vc_v', Vc_v_4, 'Vc_auto', Vc_auto_4, 'Vy', Vy_4, 'VrM', VrM_4, 'Vvm', Vvm_4, 'Vrm', Vrm_4);
+pol5 = struct('W', W_f5, 'Zp', Zp_5, 'dT', dT_5, 'V_tas', V_pol_5, 'Vc_v', Vc_v_5, 'Vc_auto', Vc_auto_5, 'Vy', Vy_5, 'VrM', VrM_5, 'Vvm', Vvm_5, 'Vrm', Vrm_5);
+cru2 = struct('W', W_f2, 'Zp', Zp_2, 'V_tas', V_cru_2, 'P_tot_hp', P_cru_2, 'V_mr', VAM_2, 'V_md', VDM_2, 'V_max', V_max_2);
+cru3 = struct('W', W_f3, 'Zp', Zp_3, 'V_tas', V_cru_3, 'P_tot_hp', P_cru_3, 'V_mr', VAM_3, 'V_md', VDM_3, 'V_max', V_max_3);
+cru4 = struct('W', W_f4, 'Zp', Zp_4, 'V_tas', V_cru_4, 'P_tot_hp', P_cru_4, 'V_mr', VAM_4, 'V_md', VDM_4, 'V_max', V_max_4);
+cru5 = struct('W', W_f5, 'Zp', Zp_5, 'V_tas', V_cru_5, 'P_tot_hp', P_cru_5, 'V_mr', VAM_5, 'V_md', VDM_5, 'V_max', V_max_5);
+Exportar_Dados(1, V_vento, heli, missao, total_comb_gasto, margem, pol2, pol3, pol4, pol5, cru2, cru3, cru4, cru5, pasta_caso);
 diary off;

@@ -1,4 +1,4 @@
-function [V_mr, V_md, V_max] = Analise_Velocidades_Cruzeiro(W, Zp, delta_ISA, heli, V_vento_kt, plotar_grafico)
+function [V_mr, V_md, V_max, V_tas_out, P_tot_hp_out] = Analise_Velocidades_Cruzeiro(W, Zp, delta_ISA, heli, V_vento_kt, plotar_grafico)
     % ANALISE_VELOCIDADES_CRUZEIRO Calcula e plota as velocidades notáveis 
     % de cruzeiro (Máximo Alcance, Máxima Autonomia e Máxima Horizontal)
     %
@@ -75,6 +75,8 @@ function [V_mr, V_md, V_max] = Analise_Velocidades_Cruzeiro(W, Zp, delta_ISA, he
     end
 
     %% 4. Geração do Gráfico (Opcional)
+    V_tas_out = V_tas_kt;
+    P_tot_hp_out = P_tot_hp;
     if plotar_grafico
         figure('Color', 'w', 'Name', sprintf('Velocidades de Cruzeiro | %.0f lb | %0.f ft', W, Zp));
         hold on; grid on;
