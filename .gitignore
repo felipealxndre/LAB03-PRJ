@@ -1,6 +1,5 @@
 *.pdf
 *.env
-*.py
 __pycache__/
 /results/**
 !/results/AlphaOne/
