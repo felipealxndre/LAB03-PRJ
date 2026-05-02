@@ -40,10 +40,12 @@ LAB 03/
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `main.m` | Define aeronáve, casos e parâmetros; executa as 6 fases em sequência |
-| `src/Calcular_Fase.m` | Resolve o iterativo de Glauert, calcula todos os $C_P$; flag `usar_peso_medio` ativa o preditor-corretor |
-| `src/Analise_Velocidades_Cruzeiro.m` | Varre 0–200 kt; calcula VDM (tangente) e VAM (mínimo); plota P(V) e decomposição |
-| `src/Polar_Velocidade.m` | Constrói a polar vertical; determina Vy, Vvm e Vrm |
+| `main.m` | Define aeronave, casos e parâmetros; executa as 6 fases em sequência |
+| `src/Calcular_Fase.m` | Núcleo físico: resolve o iterativo de Glauert, calcula todos os $C_P$, aplica correção IGE e retorna potências + consumo |
+| `src/Analise_Velocidades_Cruzeiro.m` | Varre 1–200 kt em voo nivelado; determina VDM (tangente), VAM (mínimo) e $V_\text{max}$ (cruzamento com $P_\text{disp}$) |
+| `src/Polar_Velocidade.m` | Constrói o envelope de desempenho vertical; determina $V_y$, $V_{vm}$, $V_{rm}$, $V_{rM}$ |
+| `src/analisar_fase.m` | Orquestra Polar + Cruzeiro e monta as structs `polar` e `cruzeiro` para exportação |
+| `src/atribui_fase.m` | Monta a struct de missão de cada fase a partir das velocidades notáveis calculadas |
 | `utils/ISA.m` | Calcula $\rho$, $T$ e $P$ para qualquer altitude-pressão com desvio $\Delta T_\text{ISA}$ |
 | `utils/Exportar_Resultados.m` | Formata e grava `resultado.txt` e `dados.json` por caso |
 | `utils/plotar_caso.py` | Lê `dados.json` e gera os gráficos PNG em `results/` |
@@ -76,91 +78,153 @@ A missão completa é composta por seis fases, todas a ISA+20 °C:
 
 ## Metodologia
 
-### 1. Atmosfera ISA com desvio de temperatura
+### 1. `utils/ISA.m` — Atmosfera Padrão Internacional com desvio de temperatura
 
-Para uma altitude-pressão $Z_p$ (ft) e desvio $\Delta T_\text{ISA}$:
+Para uma altitude-pressão $Z_p$ (ft) e desvio $\Delta T_\text{ISA}$ (°C), o modelo de troposfera usa:
 
-$$T_\text{std} = T_0 + L \cdot Z_{p,m}, \qquad T_\text{real} = T_\text{std} + \Delta T_\text{ISA}$$
+$$T_\text{std} = T_0 + L \cdot Z_{p,m} \qquad \text{(temperatura padrão, base para a pressão)}$$
+
+$$T_\text{real} = T_\text{std} + \Delta T_\text{ISA} \qquad \text{(temperatura real, base para a densidade)}$$
 
 $$P = P_0 \left(\frac{T_\text{std}}{T_0}\right)^{-g/(LR)}, \qquad \sigma_\rho = \frac{P/P_0}{T_\text{real}/T_0}, \qquad \rho = \rho_0 \cdot \sigma_\rho$$
 
-onde $T_0 = 288{,}15$ K, $P_0 = 101\,325$ Pa, $\rho_0 = 0{,}0023769$ slug/ft³, $L = -0{,}0065$ K/m.
+Constantes: $T_0 = 288{,}15$ K, $P_0 = 101\,325$ Pa, $\rho_0 = 0{,}0023769$ slug/ft³, $L = -0{,}0065$ K/m.
+
+> **Hipótese:** modelo de troposfera válido até $\approx 36\,000$ ft; não inclui tropopausa nem estratosfera.
+> O desvio $\Delta T_\text{ISA}$ altera apenas a densidade (via $T_\text{real}$), mantendo a pressão na curva ISA padrão — isso é fisicamente correto em dias quentes/frios.
 
 ---
 
-### 2. Coeficiente de potência total
+### 2. `src/Calcular_Fase.m` — Núcleo Aerodinâmico e Consumo
 
-Para o caso mais geral (subida com velocidade de avanço):
+Esta é a função central do projeto. Recebe o estado da aeronave e retorna todas as potências e o peso ao fim da fase.
 
-$$\boxed{C_P = k_i \frac{C_T^2}{2\sqrt{\mu^2 + (\lambda_c + \lambda_i)^2}} + \frac{\sigma C_{d0}}{8}(1 + 4{,}65\,\mu^2) + \frac{1}{2}\frac{f}{A}\mu^3 + C_{P_\text{misc}} + \lambda_c C_T}$$
+#### 2.1 Adimensionais de entrada
 
-com:
+$$\mu = \frac{V_\text{TAS}}{\Omega R}, \quad \lambda_c = \frac{V_c}{\Omega R}, \quad C_T = \frac{W}{\rho\,A\,(\Omega R)^2}$$
 
-$$\mu = \frac{V_\text{TAS}}{\Omega R}, \quad \lambda_c = \frac{V_c}{\Omega R}, \quad C_T = \frac{W}{\rho A (\Omega R)^2}$$
+onde $\mu$ é a razão de avanço, $\lambda_c$ o inflow de subida/descida e $C_T$ o coeficiente de tração.
 
-A **potência dimensional** é obtida por:
+#### 2.2 Iterativo de Glauert — velocidade induzida
 
-$$P = \rho\,A\,(\Omega R)^3\,C_P$$
+A equação implícita de Glauert para $\lambda_i$ é resolvida por ponto-fixo partindo de $v_i^{(0)} = v_h = \sqrt{W/(2\rho A)}$:
+
+$$\lambda_i^{(n+1)} = \frac{C_T/2}{\sqrt{\mu^2 + \left(\lambda_c^\text{iter} + \lambda_i^{(n)}\right)^2}}, \qquad \text{convergência: } |\lambda_i^{(n+1)} - \lambda_i^{(n)}| < 10^{-3}$$
+
+> **Hipótese — descida:** por simplificação do enunciado, usa-se $\lambda_c^\text{iter} = 0$ no iterativo para $V_c < 0$, evitando a região de VRS (*Vortex Ring State*).
+> O termo real $\lambda_c C_T$ (negativo) é, porém, mantido na equação de $C_P$ para contabilizar a energia recuperada na descida.
+
+#### 2.3 Decomposição dos coeficientes de potência
+
+$$C_{P,\text{ind}} = k_i \frac{C_T^2}{2\sqrt{\mu^2 + (\lambda_c^\text{iter} + \lambda_i)^2}} \qquad \text{(induzida)}$$
+
+$$C_{P,\text{perf}} = \frac{\sigma\,C_{d0}}{8}\left(1 + 4{,}65\,\mu^2\right) \qquad \text{(perfil — arrasto das pás)}$$
+
+$$C_{P,\text{par}} = \frac{1}{2}\frac{f}{A}\,\mu^3 \qquad \text{(parasita — arrasto da fuselagem, } \propto V^3 \text{)}$$
+
+$$C_{P,\text{vert}} = \lambda_c\,C_T \qquad \text{(subida/descida — negativo em descida)}$$
+
+$$C_{P,R} = C_{P,\text{ind}} + C_{P,\text{perf}} + C_{P,\text{par}} + C_{P,\text{vert}} \qquad \text{(potência total ao rotor)}$$
+
+$$C_{P,\text{misc}} = \left(\frac{1}{\eta_m} - 1\right) C_{P,R}, \qquad C_{P,\text{motor}} = \frac{C_{P,R}}{\eta_m} \qquad \text{(eficiência mecânica)}$$
+
+> $\eta_m$ agrupa rotor de cauda, transmissão e acessórios. Qualquer potência além de $C_{P,R}$ é dissipada como $C_{P,\text{misc}}$.
+
+#### 2.4 Conversão de $C_P$ para potência dimensional
+
+$$P\ [\text{kW}] = \underbrace{\rho\,A\,(\Omega R)^3}_{\text{fator adimensional}} \cdot C_P \cdot \underbrace{\frac{1}{550}}_{\text{ft·lbf/s → hp}} \cdot \underbrace{0{,}7457}_{\text{hp → kW}}$$
+
+#### 2.5 Consumo de combustível
+
+$$\dot{W}_\text{comb} = \text{SFC} \times P_{eM}\,[\text{hp}] \quad [\text{lb/h}]$$
+
+$$W_\text{final} = W - \dot{W}_\text{comb} \times \frac{\Delta t_\text{min}}{60}$$
+
+#### 2.6 Correção de Efeito Solo — método de Prouty
+
+Ativada apenas quando $V < 1$ kt e $h_\text{solo}$ é finito ($\ne \infty$). O fator $k_\text{IGE}$ é interpolado a partir dos dados experimentais de Prouty pela razão altura-diâmetro $z/D$:
+
+$$C_{P,\text{ind}}^\text{IGE} = C_{P,\text{ind}}^\text{OGE} \cdot k_\text{IGE}\!\left(\frac{z}{D}\right), \qquad z = h_\text{solo} + h_\text{rotor},\quad D = 2R$$
+
+O polinômio de grau 4 é ajustado aos 9 pontos tabelados de Prouty no intervalo $z/D \in [0{,}43,\,1{,}16]$. Fora desse intervalo ($z/D \geq 1$), nenhuma correção é aplicada (efeito solo desprezível).
+
+#### 2.7 Preditor-corretor de peso médio
+
+Ativado por `usar_peso_medio = true`. Corrige o viés de usar o peso inicial para toda a fase:
+
+$$W_\text{pred} = W_\text{ini} - \Delta W(W_\text{ini}) \qquad \text{(1ª passagem — preditor)}$$
+
+$$W_\text{med} = \frac{W_\text{ini} + W_\text{pred}}{2} \qquad \text{(peso médio estimado)}$$
+
+$$W_\text{final} = W_\text{ini} - \Delta W(W_\text{med}) \qquad \text{(2ª passagem — corretor)}$$
+
+> **Quando usar:** recomendado para fases onde $\Delta W / W \gtrsim 5\%$ (tipicamente cruzeiro de centenas de NM).
+> Para pairado, subida e descida, peso fixo é suficiente ($\Delta W / W \lesssim 1\%$).
 
 ---
 
-### 3. Velocidade induzida — iterativo de Glauert
+### 3. `src/Analise_Velocidades_Cruzeiro.m` — Balanço de Potência e Velocidades de Cruzeiro
 
-A velocidade induzida $\lambda_i$ é resolvida iterativamente pela equação implícita de Glauert:
+Varre $V_\text{TAS} \in [1,\,200]$ kt com passo de 0,1 kt em voo nivelado ($V_c = 0$), chamando `Calcular_Fase` em cada ponto.
 
-$$\lambda_i = \frac{C_T/2}{\sqrt{\mu^2 + (\lambda_c^\text{ind} + \lambda_i)^2}}$$
+#### 3.1 Velocidade de Máxima Autonomia (VAM)
 
-> **Nota — descida:** conforme o enunciado, despreza-se a variação da potência induzida com a razão de descida; usa-se $\lambda_c^\text{ind} = 0$ no iterativo enquanto o termo $\lambda_c C_T$ real (negativo) é mantido no $C_P$ total.
+Corresponde ao mínimo da curva $P_\text{tot}(V)$, ou seja, o ponto de menor consumo instantâneo:
 
----
+$$V_\text{AM} = \arg\min_{V}\; P_\text{tot}(V)$$
 
-### 4. Potência de miscelânea e eficiência mecânica
+> Fisicamente: voar na VAM maximiza o tempo de voo para uma dada quantidade de combustível (maior autonomia).
 
-$$\eta_m = \frac{P_{eR}}{P_{eM}} \implies C_{P_\text{misc}} = \left(\frac{1}{\eta_m} - 1\right) C_{P_\text{rotor}}, \quad C_{P_\text{motor}} = \frac{C_{P_\text{rotor}}}{\eta_m}$$
+#### 3.2 Velocidade de Distância Máxima (VDM)
 
----
+Geometricamente é o ponto de tangência da reta partindo da **origem da velocidade-solo** ($V_{GS} = 0 \Rightarrow V_\text{TAS} = -V_\text{vento}$) à curva $P_\text{tot}(V_\text{TAS})$:
 
-### 5. Correção de efeito solo (IGE)
+$$V_\text{DM} = \arg\min_{V}\; \frac{P_\text{tot}(V)}{V_\text{GS}} = \arg\min_{V}\; \frac{P_\text{tot}(V)}{V + V_\text{vento}}$$
 
-Para voo pairado a baixa altura ($V < 1$ kt e $h$ finita), aplica-se a correção de Prouty sobre a potência induzida. O fator de redução $k_\text{IGE}$ é interpolado da curva experimental (razão $z/D$) por um polinômio de grau 4 ajustado aos dados tabelados:
+> Com vento de proa ($V_\text{vento} < 0$), a origem desloca-se para a esquerda, empurrando a VDM para uma velocidade maior — o helicóptero deve voar mais rápido para compensar a perda de $V_{GS}$.
 
-$$C_{P_\text{ind}}^\text{IGE} = C_{P_\text{ind}}^\text{OGE} \cdot k_\text{IGE}\!\left(\frac{z}{D}\right)$$
+#### 3.3 Velocidade Máxima de Voo Nivelado ($V_\text{max}$)
 
-onde $z = h_\text{solo} + h_\text{rotor}$ e $D = 2R$.
+É a maior velocidade para a qual $P_\text{tot}(V) \leq P_\text{disp}$. Encontrada por interpolação linear no cruzamento entre $\delta_P = P_\text{disp} - P_\text{tot}$ e zero:
 
----
-
-### 6. Preditor-corretor de peso médio
-
-O consumo de combustível em cada fase é calculado pelo método preditor-corretor para contabilizar a variação de peso durante a fase. Este método está integrado diretamente em `Calcular_Fase` e é ativado pelo nono parâmetro opcional `usar_peso_medio = true` — mantendo a interface simples (peso fixo, sem o flag) para contextos que não requerem precisão extra (e.g., geração de polares):
-
-$$W_\text{final}^* = W_\text{ini} - \Delta W\bigl(W_\text{ini}\bigr) \quad \text{(Preditor)}$$
-
-$$W_\text{med} = \frac{W_\text{ini} + W_\text{final}^*}{2} \quad \text{(Peso médio)}$$
-
-$$W_\text{final} = W_\text{ini} - \Delta W\bigl(W_\text{med}\bigr) \quad \text{(Corretor)}$$
-
-O consumo por fase é:
-
-$$\Delta W_\text{comb} = \text{SFC} \times P_\text{motor}\bigl(W_\text{med}\bigr) \times \Delta t$$
+$$V_\text{max} = \text{interp1}\!\left(\delta_P,\, V_\text{TAS},\, 0\right) \quad \text{na última passagem de } \delta_P \geq 0 \to \delta_P < 0$$
 
 ---
 
-### 7. Velocidade de Distância Máxima (VDM)
+### 4. `src/Polar_Velocidade.m` — Envelope de Performance Vertical
 
-A VDM maximiza a distância para dado combustível. Geometricamente, é o ponto de tangência da reta que parte da **origem da velocidade-solo** ($V_{GS} = 0$, ou seja, $V_\text{TAS} = -V_\text{vento}$) à curva $P(V_\text{TAS})$:
+Varre $V_\text{TAS} \in [0,\,180]$ kt com passo de 0,1 kt, calculando para cada ponto a razão vertical em duas condições:
 
-$$\text{VDM} = \arg\min_{V} \frac{P(V)}{V + V_\text{vento}}$$
+$$v_Z(V) = \frac{(P_\text{disp} - P_\text{tot})\,[\text{hp}] \times 33\,000}{W\,[\text{lb}]} \quad [\text{fpm}] \qquad \text{(envelope de subida — com motor na PMC)}$$
 
-O tempo de F3 usa a velocidade-solo: $t_3 = d / V_{GS} = d / (V_\text{DM} + V_\text{vento})$.
+$$v_{Z,\text{auto}}(V) = \frac{-P_\text{tot}(V)\,[\text{hp}] \times 33\,000}{W\,[\text{lb}]} \quad [\text{fpm}] \qquad \text{(autorrotação — motor desligado)}$$
+
+> O fator 33 000 converte hp para ft·lb/min; dividido por $W$ [lb] resulta em ft/min de razão vertical.
+
+#### 4.1 Velocidades de razão (independem do vento)
+
+| Velocidade | Definição | Cálculo |
+|---|---|---|
+| $V_y$ | Máxima razão de subida | $\arg\max\; v_Z(V)$ |
+| $V_{vm}$ | Mínima razão de descida (autorrotação) | $\arg\max\; v_{Z,\text{auto}}(V)$ (menos negativo) |
+
+#### 4.2 Velocidades de rampa (dependem do vento)
+
+O ângulo de trajetória sobre o solo é $\gamma = v_Z / V_{GS}$, com $V_{GS} = V_\text{TAS} + V_\text{vento}$.
+Geometricamente equivale à inclinação da reta que parte da origem $(-V_\text{vento},\, 0)$ e toca a curva:
+
+| Velocidade | Definição | Cálculo |
+|---|---|---|
+| $V_{rM}$ | Máxima rampa de subida (melhor ângulo de climb) | $\arg\max\; v_Z / V_{GS}$ |
+| $V_{rm}$ | Mínima rampa de descida (maior alcance em autorrotação) | $\arg\max\; v_{Z,\text{auto}} / V_{GS}$ |
+
+> **Hipótese numérica:** pontos com $V_{GS} \leq 5$ kt são filtrados ($\gamma \to -\infty$) para evitar instabilidade numérica próxima à origem das retas tangentes.
 
 ---
 
-### 8. Velocidade de Autonomia Máxima (VAM)
+### 5. `src/analisar_fase.m` — Orquestrador por Fase
 
-A VAM minimiza o consumo por unidade de tempo, correspondendo ao mínimo da curva de potência necessária:
-
-$$\text{VAM} = \arg\min_{V} P(V)$$
+Chama `Polar_Velocidade` e `Analise_Velocidades_Cruzeiro` em sequência para uma dada condição de peso/altitude, e consolida os resultados nas structs `polar` e `cruzeiro` exportadas para JSON. Não contém lógica física própria — serve como interface entre o `main.m` e os módulos de análise.
 
 ---
 

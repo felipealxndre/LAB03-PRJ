@@ -1,39 +1,50 @@
 function [polar, cruzeiro, Vy, VDM, VAM, Vvm, Vrm] = analisar_fase(W, Zp, dT, heli, Vc_fpm, V_vento, plotar)
     % ANALISAR_FASE  Orquestra a análise de desempenho de uma fase de voo.
     %
+    % Calcula a polar de velocidades (performance vertical) e o balanço de
+    % potência de cruzeiro, retornando structs compactos e velocidades notáveis.
+    %
     % Entradas:
-    %   W        - Peso da aeronave [lb]
+    %   W        - Peso atual [lb]
     %   Zp       - Altitude de pressão [ft]
-    %   dT       - Desvio de temperatura ISA [°C]
+    %   dT       - Desvio ISA [°C]
     %   heli     - Struct com parâmetros da aeronave
-    %   Vc_fpm   - Razão de subida/descida comandada [fpm]  (0 = nivelado)
-    %   V_vento  - Componente longitudinal do vento [kt]  (+ cauda, - proa)
+    %   Vc_fpm   - Razão de subida/descida comandada [fpm]
+    %   V_vento  - Velocidade do vento [kt]  (+ cauda, − proa)
     %   plotar   - Booleano: gera figuras se true
     %
     % Saídas:
-    %   polar    - Struct com a curva polar de velocidade vertical
-    %   cruzeiro - Struct com a curva de potência em cruzeiro
+    %   polar    - Struct: W, Zp, V_tas, vZ, vZ_auto e velocidades notáveis da polar
+    %   cruzeiro - Struct: W, Zp, VDM, VAM, V_max, V_tas, P_tot e componentes
     %   Vy       - Velocidade de Máxima Razão de Subida [kt]
-    %   VDM      - Velocidade de Distância Máxima (maior alcance) [kt]
-    %   VAM      - Velocidade de Autonomia Máxima (maior autonomia) [kt]
+    %   VDM      - Velocidade de Distância Máxima [kt]
+    %   VAM      - Velocidade de Máxima Autonomia [kt]
     %   Vvm      - Velocidade de Mínima Razão de Descida [kt]
     %   Vrm      - Velocidade de Mínima Rampa de Descida [kt]
 
-    [V_pol, ~, Vc_v, Vy, ~, Vvm, Vrm, Vc_auto, VrM] = ...
+
+    % ── Polar de Velocidades ──────────────────────────────────────────────────
+    [V_pol, ~, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = ...
         Polar_Velocidade(W, Zp, dT, heli, Vc_fpm, plotar, [], V_vento);
 
-    % V_mr = tangente à curva P/V = Maior Alcance = VDM
-    % V_md = mínimo da curva de potência = Maior Autonomia = VAM
-    [VDM, VAM, V_max, V_cru, P_cru, P_ind, P_perf, P_par, P_misc] = ...
+    % ── Balanço de Potência de Cruzeiro ──────────────────────────────────────
+    [VDM, VAM, V_max, V_tas, P_tot_hp, P_ind, P_perf, P_par, P_misc] = ...
         Analise_Velocidades_Cruzeiro(W, Zp, dT, heli, V_vento, plotar);
 
+    % ── Montagem das structs de saída ─────────────────────────────────────────
     polar = struct('W', W, 'Zp', Zp, 'dT', dT, ...
-                   'V_tas', V_pol, 'Vc_v', Vc_v, 'Vc_auto', Vc_auto, ...
-                   'Vy', Vy, 'VrM', VrM, 'Vvm', Vvm, 'Vrm', Vrm);
+                   'V_tas',   V_pol,   ...
+                   'vZ',      vZ,      ...
+                   'vZ_auto', vZ_auto, ...
+                   'Vy',      Vy,      ...
+                   'Vzmax',   Vzmax,   ...
+                   'VrM',     VrM,     ...
+                   'Vvm',     Vvm,     ...
+                   'Vrm',     Vrm);
 
-    cruzeiro = struct('W', W, 'Zp', Zp, ...
-                      'V_tas',    V_cru,  'P_tot_hp', P_cru, ...
-                      'P_ind_hp', P_ind,  'P_perf_hp', P_perf, ...
-                      'P_par_hp', P_par,  'P_misc_hp', P_misc, ...
-                      'V_mr', VDM, 'V_md', VAM, 'V_max', V_max);
+    cruzeiro = struct('W', W, 'Zp', Zp,                               ...
+                      'V_tas',     V_tas,    'P_tot_hp',  P_tot_hp,  ...
+                      'P_ind_hp',  P_ind,    'P_perf_hp', P_perf,    ...
+                      'P_par_hp',  P_par,    'P_misc_hp', P_misc,    ...
+                      'VDM', VDM, 'VAM', VAM, 'V_max', V_max);
 end
