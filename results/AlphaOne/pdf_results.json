@@ -1,0 +1,116 @@
+{
+  "_fonte": "Lab03_PRJ91.pdf – Relatório do grupo (02/05/2025)",
+  "_aeronave": "AlphaOne",
+  "_unidades_potencia": "hp (conforme tabela do PDF)",
+  "_unidades_combustivel": "litros (conforme tabela do PDF)",
+  "_conversao_lt_para_lb": 1.5857,
+  "_nota_conversao": "222 lb / 140 lt = 1.5857 lb/lt  →  densidade Avgas ≈ 719 kg/m³",
+
+  "CASO1": {
+    "_condicao": "Sem vento – distância 300 NM – reserva 20 min",
+    "_total_combustivel_lt": 122.18,
+    "_total_combustivel_lb": 193.73,
+    "_conclusao": "Combustível suficiente (140 lt disponíveis)",
+
+    "fases": [
+      {
+        "id": 1, "nome": "Pairado IGE",
+        "P_ind_hp": 77.11, "P_perf_hp": 37.39, "P_par_hp": 0.00,
+        "P_misc_hp": 20.21, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 134.70, "vel_kt": 0.0, "comb_lt": 3.18
+      },
+      {
+        "id": 2, "nome": "Subida na Vy",
+        "P_ind_hp": 29.06, "P_perf_hp": 37.35, "P_par_hp": 6.56,
+        "P_misc_hp": 21.34, "P_sub_hp": 47.95, "P_des_hp": 0.00,
+        "P_tot_hp": 142.25, "vel_kt": 49.5, "comb_lt": 3.36
+      },
+      {
+        "id": 3, "nome": "Nivelado VDM",
+        "P_ind_hp": 18.93, "P_perf_hp": 39.38, "P_par_hp": 30.61,
+        "P_misc_hp": 15.69, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 104.61, "vel_kt": 84.8, "comb_lt": 104.85
+      },
+      {
+        "id": 4, "nome": "Nivelado VAM",
+        "P_ind_hp": 24.49, "P_perf_hp": 34.75, "P_par_hp": 6.61,
+        "P_misc_hp": 11.62, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 77.46, "vel_kt": 50.9, "comb_lt": 7.32
+      },
+      {
+        "id": 5, "nome": "Descida na Vy",
+        "P_ind_hp": 23.57, "P_perf_hp": 37.20, "P_par_hp": 6.01,
+        "P_misc_hp": 4.41,  "P_sub_hp": 0.00, "P_des_hp": -41.77,
+        "P_tot_hp": 29.42,  "vel_kt": 48.1, "comb_lt": 0.70
+      },
+      {
+        "id": 6, "nome": "Pairado IGE (pouso)",
+        "P_ind_hp": 62.28, "P_perf_hp": 37.39, "P_par_hp": 0.00,
+        "P_misc_hp": 17.59, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 117.26, "vel_kt": 0.0, "comb_lt": 2.77
+      }
+    ],
+
+    "velocidades_notaveis": {
+      "_nota": "Tabela 3.3 do PDF",
+      "F2_subida":      { "Vy_kt": 49.5, "Vvm_kt": 52.3, "vmax_fpm": 7.8,  "vmin_fpm": -29.5 },
+      "F3_VDM":         { "VDM_kt": 84.8, "VvM_kt": 53.7, "Vvm_kt": 53.7, "vmax_fpm": 19.6, "vmin_fpm": -17.7 },
+      "F4_VAM":         { "VAM_kt": 50.9, "VvM_kt": 50.9, "Vvm_kt": 50.9, "vmax_fpm": 24.0, "vmin_fpm": -18.1 },
+      "F5_descida":     { "Vy_kt": 48.1, "VvM_kt": 48.1, "Vvm_kt": 48.1, "vmax_fpm": 35.6, "vmin_fpm": -7.0  }
+    }
+  },
+
+  "CASO2": {
+    "_condicao": "Vento de proa 20 kt – distância 300 NM – reserva 20 min",
+    "_total_combustivel_lt": 123.71,
+    "_total_combustivel_lb": 196.23,
+    "_conclusao": "Combustível suficiente (140 lt disponíveis)",
+
+    "fases": [
+      {
+        "id": 1, "nome": "Pairado IGE",
+        "P_ind_hp": 77.11, "P_perf_hp": 37.39, "P_par_hp": 0.00,
+        "P_misc_hp": 20.21, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 134.70, "vel_kt": 0.0, "comb_lt": 3.18
+      },
+      {
+        "id": 2, "nome": "Subida na Vy",
+        "P_ind_hp": 29.06, "P_perf_hp": 37.35, "P_par_hp": 6.56,
+        "P_misc_hp": 21.34, "P_sub_hp": 47.95, "P_des_hp": 0.00,
+        "P_tot_hp": 142.25, "vel_kt": 49.5, "comb_lt": 3.36
+      },
+      {
+        "id": 3, "nome": "Nivelado VDM",
+        "P_ind_hp": 16.95, "P_perf_hp": 41.17, "P_par_hp": 42.62,
+        "P_misc_hp": 17.77, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 118.52, "vel_kt": 94.7, "comb_lt": 106.39
+      },
+      {
+        "id": 4, "nome": "Nivelado VAM",
+        "P_ind_hp": 24.39, "P_perf_hp": 34.75, "P_par_hp": 6.61,
+        "P_misc_hp": 11.60, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 77.35, "vel_kt": 50.9, "comb_lt": 7.31
+      },
+      {
+        "id": 5, "nome": "Descida na Vy",
+        "P_ind_hp": 23.48, "P_perf_hp": 37.20, "P_par_hp": 6.01,
+        "P_misc_hp": 4.41,  "P_sub_hp": 0.00, "P_des_hp": -41.69,
+        "P_tot_hp": 29.41,  "vel_kt": 48.1, "comb_lt": 0.70
+      },
+      {
+        "id": 6, "nome": "Pairado IGE (pouso)",
+        "P_ind_hp": 62.10, "P_perf_hp": 37.39, "P_par_hp": 0.00,
+        "P_misc_hp": 17.56, "P_sub_hp": 0.00, "P_des_hp": 0.00,
+        "P_tot_hp": 117.05, "vel_kt": 0.0, "comb_lt": 2.77
+      }
+    ],
+
+    "velocidades_notaveis": {
+      "_nota": "Tabela 3.4 do PDF",
+      "F2_subida":  { "Vy_kt": 49.5, "Vvm_kt": 52.3, "vmax_fpm": 7.8,  "vmin_fpm": -29.5 },
+      "F3_VDM":     { "VDM_kt": 94.7, "VvM_kt": 53.7, "Vvm_kt": 53.7, "vmax_fpm": 19.6, "vmin_fpm": -17.7 },
+      "F4_VAM":     { "VAM_kt": 50.9, "VvM_kt": 50.9, "Vvm_kt": 50.9, "vmax_fpm": 24.1, "vmin_fpm": -18.2 },
+      "F5_descida": { "Vy_kt": 48.1, "VvM_kt": 48.1, "Vvm_kt": 48.1, "vmax_fpm": 35.7, "vmin_fpm": -7.0  }
+    }
+  }
+}

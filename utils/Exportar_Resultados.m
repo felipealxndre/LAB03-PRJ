@@ -48,7 +48,7 @@ function escrever_txt(caminho, caso, V_vento, heli, missao, total_comb_gasto, ma
 
     %% Cabeçalho
     fprintf(fid, '=========================================================\n');
-    fprintf(fid, '       SIMULAÇÃO DE MISSÃO - AH-1S COBRA - CASO %d\n', caso);
+    fprintf(fid, '       SIMULAÇÃO DE MISSÃO - ALPHAONE - CASO %d\n', caso);
     fprintf(fid, '=========================================================\n');
     fprintf(fid, 'Vento Considerado: %.2f kt\n', V_vento);
     fprintf(fid, '=========================================================\n\n');

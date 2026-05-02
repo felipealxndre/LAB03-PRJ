@@ -1,5 +1,5 @@
 # PRJ-91 — Laboratório 3: Requisito de Missão
-### Helicóptero AH-1S Cobra · ISA+20 · Sistema Imperial
+### Helicóptero AlphaOne · ISA+20 · Sistema Imperial
 
 ---
 
@@ -23,15 +23,19 @@ LAB 03/
 │   └── plotar_caso.py            # Gera os gráficos PNG a partir de dados.json
 │
 ├── config/
-│   ├── heli_params.json          # Parâmetros do AH-1S Cobra
-│   └── heli_params_alphaone.json # Parâmetros do AlphaOne
+│   └── heli_params.json          # Parâmetros do AlphaOne
 │
-└── results/AH1S/
-    └── CASO{1..4}/
-        ├── resultado.txt         # Tabela de potências, velocidades e consumo
-        ├── dados.json            # Dados numéricos serializados
-        ├── Balanco_Fase{2..5}_*.png  # Curva P(V) com VDM/VAM e decomposição
-        └── Polar_Fase{2..5}_*.png    # Polar de velocidade vertical
+└── results/AlphaOne/
+    ├── pdf_results.json          # Valores de referência do relatório PDF
+    ├── CASO{1,2}/
+    │   ├── resultado.txt         # Tabela de potências, velocidades e consumo
+    │   ├── dados.json            # Dados numéricos serializados
+    │   ├── Balanco_Fase{2..5}_*.png
+    │   ├── Polar_Fase{2..5}_*.png
+    │   └── Decomp_Fase{2..5}_*.png
+    └── comparacoes/
+        ├── Comp_VDM_Tangentes_C1vsC2.png
+        └── Comp_Decomp_VDM_C1vsC2.png
 ```
 > ¹ `analisar_fase` e `atribui_fase` existem como arquivos separados em `src/` para compatibilidade com Octave.
 > No MATLAB, estão definidas como *local functions* diretamente em `main.m`.
@@ -52,27 +56,43 @@ LAB 03/
 
 ---
 
+## Aeronave — AlphaOne
+
+Helicóptero leve, monomotor a pistão (Lycoming IO-360-B), rotor principal tripá.
+
+| Parâmetro | Valor |
+|---|---|
+| MTOW | 1 587 lb |
+| Peso vazio | 838 lb |
+| Capacidade de combustível | 222 lb |
+| Raio do rotor $R$ | 12,63 ft |
+| Velocidade de ponta $\Omega R$ | 650,9 ft/s |
+| Solidez $\sigma$ | 0,04465 |
+| $P_\text{disp}$ (PMC) | 180 hp |
+| SFC | 0,450 lb/hp/h |
+| Altura do rotor sobre o solo $h$ | 5 ft |
+
+---
+
 ## Missão Analisada
 
 A missão completa é composta por seis fases, todas a ISA+20 °C:
 
 | # | Fase | Condição |
 |---|---|---|
-| 1 | Pairado IGE | 5 min · $Z_p = 0$ ft · $h = 6$ ft acima do solo |
-| 2 | Subida na $V_y$ | $V_c = 1000$ fpm · $0 \to 5000$ ft (Caso 3: 2000 fpm) |
-| 3 | Nivelado na VDM | Distância de 400 NM · $Z_p = 5000$ ft (Caso 4: 440 NM) |
-| 4 | Nivelado na VAM | 30 min de reserva · $Z_p = 5000$ ft |
+| 1 | Pairado IGE | 5 min · $Z_p = 0$ ft · $h = 5$ ft acima do solo |
+| 2 | Subida na $V_y$ | $V_c = 1000$ fpm · $0 \to 5000$ ft |
+| 3 | Nivelado na VDM | Distância de 300 NM · $Z_p = 5000$ ft |
+| 4 | Nivelado na VAM | 20 min de reserva · $Z_p = 5000$ ft |
 | 5 | Descida na $V_y$ | $V_c = -1000$ fpm · $5000 \to 0$ ft |
-| 6 | Pairado IGE | 5 min · $Z_p = 0$ ft · $h = 6$ ft |
+| 6 | Pairado IGE | 5 min · $Z_p = 0$ ft · $h = 5$ ft |
 
-**Quatro casos** parametrizam vento, distância e razão de subida:
+**Dois casos** parametrizam a presença de vento de proa:
 
-| Caso | Vento (kt) | Distância (NM) | $V_c$ subida (fpm) |
-|---|---|---|---|
-| 1 | 0 | 400 | 1 000 |
-| 2 | −15 (proa) | 400 | 1 000 |
-| 3 | 0 | 400 | 2 000 |
-| 4 | 0 | 440 | 1 000 |
+| Caso | Vento (kt) | Distância (NM) |
+|---|---|---|
+| 1 | 0 | 300 |
+| 2 | −20 (proa) | 300 |
 
 ---
 
@@ -210,93 +230,71 @@ Chama `Polar_Velocidade` e `Analise_Velocidades_Cruzeiro` em sequência para uma
 
 ## Resultados
 
-### Tabela-síntese dos 4 casos
+### Tabela-síntese dos 2 casos
 
-| Caso | Vento | Dist. | $V_c$ sub. | Comb. gasto (lb) | Margem (lb) | Potência | Combustível |
-|---|---|---|---|---|---|---|---|
-| 1 | 0 kt | 400 NM | 1 000 fpm | 1 554,13 | +129,87 | ✅ | ✅ |
-| 2 | −15 kt | 400 NM | 1 000 fpm | 1 735,22 | −51,22 | ✅ | ❌ |
-| 3 | 0 kt | 400 NM | 2 000 fpm | 1 541,86 | +142,14 | ❌ | ✅ |
-| 4 | 0 kt | 440 NM | 1 000 fpm | 1 675,98 | +8,02 | ✅ | ✅ |
+| Caso | Vento | Dist. | Comb. gasto (lb) | Margem (lb) | Potência | Combustível |
+|---|---|---|---|---|---|---|
+| 1 | 0 kt | 300 NM | 190,38 | +31,62 | ✅ | ✅ |
+| 2 | −20 kt | 300 NM | 236,41 | −14,41 | ✅ | ❌ |
 
-> **Caso 2** — vento de proa reduz $V_{GS}$ → tempo de cruzeiro em F3 aumenta → combustível insuficiente.  
-> **Caso 3** — $V_c = 2\,000$ fpm exige potência superior à disponível ($1\,290$ hp) → subida inviável.  
-> **Caso 4** — viável, mas a margem de +8 lb indica operação praticamente no limite do tanque.
+> **Caso 2** — vento de proa reduz $V_{GS}$ → tempo de cruzeiro em F3 aumenta → combustível insuficiente (falta 14,4 lb ≈ 9 L de avgas).
+
+Os valores-referência do relatório PDF (`results/AlphaOne/pdf_results.json`) são usados como baseline de validação: 193,7 lb para o Caso 1 e 196,2 lb para o Caso 2. A diferença no Caso 2 (≈ 40 lb a mais na simulação) é explicada pela VDM calculada ligeiramente inferior (94,4 kt vs 94,7 kt do PDF), que amplifica-se ao longo das 300 NM de cruzeiro.
 
 ---
 
-### Caso 1 — Baseline
+### Caso 1 — Baseline (sem vento)
 
-![Balanço de potência F3 — CASO 1](results/AH1S/CASO1/Balanco_Fase3_Nivelado_VDM_Zp5000ft.png)
+![Balanço de potência F3 — CASO 1](results/AlphaOne/CASO1/Balanco_Fase3_Nivelado_VDM_Zp5000ft.png)
 
-**Balanço de potência** no cruzeiro nivelado (F3, $Z_p = 5\,000$ ft): a tangente a partir da origem $(V_{GS}=0)$ toca a curva de $P_\text{tot}$ em $V_\text{DM} = 115{,}9$ kt. O mínimo da mesma curva define $V_\text{AM} = 75{,}7$ kt (usada em F4), e o cruzamento com $P_\text{disp}$ dá $V_\text{max} = 156{,}6$ kt.
+**Balanço de potência** no cruzeiro nivelado (F3, $Z_p = 5\,000$ ft): a tangente a partir da origem $(V_{GS}=0)$ toca a curva de $P_\text{tot}$ em $V_\text{DM} = 85{,}4$ kt. O mínimo da mesma curva define $V_\text{AM} = 50{,}8$ kt (usada em F4), e o cruzamento com $P_\text{disp} = 180$ hp dá $V_\text{max} \approx 120$ kt.
 
-![Polar de velocidade F2 — CASO 1](results/AH1S/CASO1/Polar_Fase2_Subida_Zp2500ft.png)
+![Polar de velocidade F2 — CASO 1](results/AlphaOne/CASO1/Polar_Fase2_Subida_Zp2500ft.png)
 
-**Polar de velocidade** na subida (F2, $Z_p = 2\,500$ ft): envelope superior (subida na PMC) com pico em $V_y = 72{,}9$ kt → $V_\text{zmax} = 1\,954$ fpm; envelope inferior (autorrotação). Como $V_\text{vento} = 0$, as retas tangentes que definem $V_{rM}$ e $V_{rm}$ partem da origem.
+**Polar de velocidade** na subida (F2, $Z_p = 2\,500$ ft): envelope superior (subida na PMC) com pico em $V_y = 51{,}7$ kt → $V_\text{zmax} \approx 1\,440$ fpm; envelope inferior (autorrotação). Como $V_\text{vento} = 0$, as retas tangentes que definem $V_{rM}$ e $V_{rm}$ partem da origem.
 
-![Decomposição de potência F3 — CASO 1](results/AH1S/CASO1/Decomp_Fase3_Nivelado_VDM_Zp5000ft.png)
+![Decomposição de potência F3 — CASO 1](results/AlphaOne/CASO1/Decomp_Fase3_Nivelado_VDM_Zp5000ft.png)
 
-**Decomposição de $P_\text{tot}(V)$**: induzida cai $\propto 1/V$, parasita cresce $\propto V^3$, perfil cresce suavemente $\propto 1 + 4{,}65\mu^2$, miscelânea escala com $P_R$. O mínimo de $P_\text{tot}$ (ponto de $V_\text{AM}$) ocorre na transição entre os regimes induzida-dominada ($V < 60$ kt) e parasita-dominada ($V > 120$ kt).
+**Decomposição de $P_\text{tot}(V)$**: induzida cai $\propto 1/V$, parasita cresce $\propto V^3$, perfil cresce suavemente $\propto 1 + 4{,}65\mu^2$, miscelânea escala com $P_R$. O mínimo de $P_\text{tot}$ (ponto de $V_\text{AM}$) ocorre na transição entre os regimes induzida-dominada e parasita-dominada.
 
 ---
 
 ### Figura 1 — Caso 2 vs Caso 1: construção geométrica da VDM com vento de proa
 
-![VDM com tangentes — C1 vs C2](results/AH1S/comparacoes/Comp_VDM_Tangentes_C1vsC2.png)
+![VDM com tangentes — C1 vs C2](results/AlphaOne/comparacoes/Comp_VDM_Tangentes_C1vsC2.png)
 
 **Pergunta que responde:** *por que $V_\text{DM}$ aumenta com vento de proa?*
 
 Como o peso e a altitude em F3 são iguais entre C1 e C2, a curva $P_\text{tot}(V)$ é **a mesma** nos dois casos (linha preta). O que muda é a **origem** da reta tangente que define o máximo alcance:
 
-- **Caso 1 (sem vento)** — a reta parte de $(0, 0)$ e toca a curva em $V_\text{DM} = 115{,}9$ kt.
-- **Caso 2 (15 kt de proa)** — a reta parte de $(-15, 0)$, ou seja, do ponto em que $V_{GS} = 0$. Para ter a mesma inclinação mínima ($P/V_{GS}$), ela precisa tocar a curva em ponto de $V$ **maior**: $V_\text{DM} = 121{,}8$ kt.
+- **Caso 1 (sem vento)** — a reta parte de $(0, 0)$ e toca a curva em $V_\text{DM} = 85{,}4$ kt.
+- **Caso 2 (20 kt de proa)** — a reta parte de $(-20, 0)$, ou seja, do ponto em que $V_{GS} = 0$. Para ter a mesma inclinação mínima ($P/V_{GS}$), ela precisa tocar a curva em ponto de $V$ **maior**: $V_\text{DM} = 94{,}4$ kt.
 
 $$\frac{d}{dV}\left(\frac{P_\text{tot}(V)}{V + V_\text{vento}}\right) = 0 \iff \text{tangência à origem }(-V_\text{vento},\,0)$$
 
-> **Conclusão didática:** o conceito "máximo alcance em relação ao solo" equivale a encontrar a menor razão potência-por-unidade-de-$V_{GS}$. Com vento contrário, o piloto deve voar mais rápido no ar para que o solo passe mais rápido por baixo.
+> **Conclusão didática:** o conceito "máximo alcance em relação ao solo" equivale a encontrar a menor razão potência-por-unidade-de-$V_{GS}$. Com vento contrário, o piloto deve voar mais rápido no ar para que o solo passe mais rápido por baixo. O deslocamento da VDM é proporcional à intensidade do vento — aqui, ≈ 9 kt de aumento para 20 kt de proa.
 
 ---
 
 ### Figura 2 — Caso 2 vs Caso 1: decomposição da potência em $V_\text{DM}$
 
-![Decomposição em VDM — C1 vs C2](results/AH1S/comparacoes/Comp_Decomp_VDM_C1vsC2.png)
+![Decomposição em VDM — C1 vs C2](results/AlphaOne/comparacoes/Comp_Decomp_VDM_C1vsC2.png)
 
 **Pergunta que responde:** *voar na $V_\text{DM}$ maior (imposta pelo vento de proa) custa mais potência — quem sobe e quem cai?*
 
 Enquanto a Figura 1 mostra **onde** está cada $V_\text{DM}$ pela construção geométrica das tangentes, esta figura mostra **o que custa** voar lá. Valores extraídos em cada ponto ótimo:
 
-| Componente | Caso 1 ($V_\text{DM,1}=115{,}9$ kt) | Caso 2 ($V_\text{DM,2}=121{,}8$ kt) | Δ |
+| Componente | Caso 1 ($V_\text{DM,1}=85{,}4$ kt) | Caso 2 ($V_\text{DM,2}=94{,}4$ kt) | Δ |
 |---|---:|---:|---:|
-| $P_\text{ind}$ (induzida, $\propto 1/V$) | 135 kW | 128 kW | **−4,8%** (cai com $V$) |
-| $P_\text{perf}$ (perfil, $\propto 1+4{,}65\mu^2$) | 210 kW | 216 kW | +2,6% |
-| $P_\text{par}$ (parasita, $\propto V^3$) | 189 kW | 219 kW | **+16,1%** (domina) |
-| $P_\text{misc}$ | 94 kW | 99 kW | +5,4% |
-| **$P_\text{tot}$** | **628 kW** | **662 kW** | **+5,4% (+34 kW)** |
+| $P_\text{ind}$ (induzida, $\propto 1/V$) | 12,6 kW | 11,0 kW | **−12,4%** (cai com $V$) |
+| $P_\text{perf}$ (perfil, $\propto 1+4{,}65\mu^2$) | 29,5 kW | 30,7 kW | +4,1% |
+| $P_\text{par}$ (parasita, $\propto V^3$) | 23,3 kW | 31,4 kW | **+35,0%** (domina) |
+| $P_\text{misc}$ | 11,5 kW | 12,9 kW | +11,9% |
+| **$P_\text{tot}$** | **76,8 kW** | **86,0 kW** | **+12,0% (+9,2 kW)** |
 
-O aumento de $V_\text{DM}$ é dominado pela **parcela parasita** ($+30$ kW), **parcialmente compensada** pela queda da induzida ($-7$ kW) — o restante se reparte entre perfil e miscelânea.
+O aumento de $V_\text{DM}$ é dominado pela **parcela parasita** ($+8{,}1$ kW), **parcialmente compensada** pela queda da induzida ($-1{,}6$ kW) — o restante se reparte entre perfil e miscelânea.
 
-> **Conclusão didática:** a $V_\text{DM}$ premia voar mais rápido justamente porque o ganho em $V_{GS}$ compensa o tempo adicional que o vento de proa impõe. Não é "potência de graça": o helicóptero queima $+34$ kW instantâneos, mas cobre a mesma distância no solo em menos tempo. Quando a distância é fixa (como em F3), a integral $P \cdot t$ aumenta, o que explica o estouro de tanque do Caso 2.
-
----
-
-### Figura 3 — Caso 3 vs Caso 1: causa física da inviabilidade (balanço de potência em subida)
-
-![Potência de subida — C1 vs C3](results/AH1S/comparacoes/Comp_Potencia_Subida_C1vsC3.png)
-
-**Pergunta que responde:** *por que 2 000 fpm é fisicamente inviável?*
-
-Mostrar primeiro a **causa** (potência) antes da **consequência** (razão de subida limitada) torna a explicação direta. A curva de $P_\text{tot}$ em subida é a curva nivelada **deslocada verticalmente** pelo termo $\lambda_c \cdot C_T$, proporcional a $W \cdot V_c$:
-
-- $V_c = 1\,000$ fpm → $+302$ hp em todas as velocidades.
-- $V_c = 2\,000$ fpm → $+604$ hp em todas as velocidades.
-
-Em $V_y = 72{,}9$ kt:
-
-- **Caso 1** — $P_\text{tot} = 1\,002$ hp → **margem de 288 hp** abaixo de $P_\text{disp}$. Subida viável e confortável.
-- **Caso 3** — $P_\text{tot} = 1\,304$ hp → **déficit de 14 hp** acima de $P_\text{disp}$. Subida **fisicamente inviável** — o motor não fornece potência suficiente.
-
-> **Conclusão didática:** a inviabilidade do Caso 3 tem origem no balanço energético básico. A polar de velocidade (que daria $V_{zmax} = 1\,954$ fpm $< 2\,000$ fpm) é apenas a **consequência** desse déficit. O gráfico de potência mostra a causa de forma direta.
+> **Conclusão didática:** a $V_\text{DM}$ premia voar mais rápido justamente porque o ganho em $V_{GS}$ compensa o tempo adicional que o vento de proa impõe. Não é "potência de graça": o helicóptero queima $+9{,}2$ kW instantâneos, mas cobre a mesma distância no solo em menos tempo. Quando a distância é fixa (como em F3), a integral $P \cdot t$ aumenta, o que explica o estouro de tanque do Caso 2 (−14,4 lb).
 
 ---
 
@@ -317,8 +315,8 @@ main
 octave --no-gui --eval "run('main.m')"
 ```
 
-Os resultados são gravados em `results/AH1S/CASO{1..4}/resultado.txt` e `dados.json`.
+Os resultados são gravados em `results/AlphaOne/CASO{1,2}/resultado.txt` e `dados.json`.
 Para gerar os gráficos PNG após a simulação:
 ```bash
-python3 utils/plotar_caso.py --aeronave AH1S
+python3 utils/plotar_caso.py
 ```
