@@ -1,13 +1,44 @@
-function [potencias, W_final] = Calcular_Fase(W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min)
-    % CALCULAR_FASE Função universal para calcular desempenho e consumo em
-    % qualquer fase de voo do helicóptero (Pairado, Cruzeiro, Subida ou Descida).
+function [potencias, W_final] = Calcular_Fase(W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min, usar_peso_medio)
+    % CALCULAR_FASE  Calcula desempenho e consumo para qualquer fase de voo
+    % (Pairado, Cruzeiro, Subida ou Descida).
     %
     % Entradas:
-    %   W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min
+    %   W              - Peso atual da aeronave [lb]
+    %   h_solo         - Altura acima do solo [ft]  (inf = OGE)
+    %   Zp             - Altitude de pressão [ft]
+    %   delta_ISA      - Desvio de temperatura ISA [°C]
+    %   heli           - Struct com parâmetros da aeronave
+    %   V_kt           - Velocidade de avanço [kt]
+    %   Vc_fpm         - Razão de subida/descida [fpm]  (negativo = descida)
+    %   tempo_min      - Duração da fase [min]
+    %   usar_peso_medio- (opcional, padrão false)
+    %       true  → aplica preditor-corretor de peso médio (recomendado para
+    %               fases longas onde ΔW/W ≳ 5%, ex.: cruzeiro de centenas de NM)
+    %       false → cálculo a peso fixo — suficiente para fases curtas
+    %               (pairado, subida, descida) onde ΔW/W ≲ 1%
     %
     % Saídas:
     %   potencias - struct com potências [kW]: P_ind, P_perf, P_par, P_vert, P_misc, P_tot
-    %   W_final  - Peso atualizado ao fim da fase [lb]  →  comb = W - W_final
+    %   W_final   - Peso ao fim da fase [lb]  →  comb = W - W_final
+
+    if nargin < 9, usar_peso_medio = false; end
+
+    % -------------------------------------------------------------------------
+    % Preditor-corretor de peso médio
+    % Quando a fase consome uma fração significativa do peso total, calcular
+    % tudo no peso inicial superestima o consumo (a aeronave vai ficando mais
+    % leve e mais eficiente ao longo da fase). O preditor-corretor resolve isso
+    % em duas passagens:
+    %   1. Preditor : estima W_final usando o peso inicial
+    %   2. Corretor : recalcula no peso médio (W_ini + W_pred) / 2
+    % -------------------------------------------------------------------------
+    if usar_peso_medio
+        [~, W_pred]            = Calcular_Fase(W, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min, false);
+        W_medio                = (W + W_pred) / 2;
+        [potencias, W_med_fin] = Calcular_Fase(W_medio, h_solo, Zp, delta_ISA, heli, V_kt, Vc_fpm, tempo_min, false);
+        W_final = W - (W_medio - W_med_fin);
+        return
+    end
 
     %% 1. Propriedades Atmosféricas e Inicialização
     [rho, ~, ~, ~] = ISA(delta_ISA, Zp);

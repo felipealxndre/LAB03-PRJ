@@ -7,38 +7,46 @@
 
 ```
 LAB 03/
-├── heli_params.json              # Parâmetros do AH-1S (geometria, motor, SFC)
-├── LAB03_main.m                  # Script principal — loop sobre os 4 casos
+├── main.m                        # Ponto de entrada — define os casos e executa a missão
+├── README.md
 │
-├── ISA.m                         # Modelo de Atmosfera Padrão Internacional
-├── Calcular_Fase.m               # Núcleo: potências e consumo para qualquer fase
-├── Calcular_Fase_PesoMedio.m     # Preditor-corretor de peso médio
-├── analisar_fase.m               # Orquestrador: Polar + Cruzeiro → VDM, VAM, Vy
-├── Analise_Velocidades_Cruzeiro.m# Curva P(V): VDM, VAM e V_max
-├── Polar_Velocidade.m            # Polar vertical: Vy, Vvm, Vrm
-├── Atribui_Fase.m                # Monta struct de missão por fase
-└── Exportar_Resultados.m         # Gera resultado.txt e dados.json por caso
-
-results/AH1S/
-└── CASO{1..4}/
-    ├── resultado.txt             # Tabela de potências, velocidades e consumo
-    ├── dados.json                # Dados numéricos serializados
-    ├── Resumo_Missao.png
-    ├── Balanco_Fase{2..5}_*.png  # Curva P(V) com VDM/VAM destacados
-    └── Polar_Fase{2..5}_*.png    # Polar de velocidade vertical
+├── src/                          # Núcleo da simulação
+│   ├── Calcular_Fase.m           # Potências e consumo por fase (preditor-corretor opcional)
+│   ├── Analise_Velocidades_Cruzeiro.m  # Curva P(V): VDM, VAM, V_max e decomposição
+│   ├── Polar_Velocidade.m        # Polar vertical: Vy, Vvm, Vrm
+│   ├── analisar_fase.m           # Orquestrador: Polar + Cruzeiro → VDM, VAM, Vy  ¹
+│   └── atribui_fase.m            # Monta struct de missão por fase  ¹
+│
+├── utils/                        # Utilitários genéricos de suporte
+│   ├── ISA.m                     # Modelo de Atmosfera Padrão Internacional
+│   ├── Exportar_Resultados.m     # Gera resultado.txt e dados.json por caso
+│   └── plotar_caso.py            # Gera os gráficos PNG a partir de dados.json
+│
+├── config/
+│   ├── heli_params.json          # Parâmetros do AH-1S Cobra
+│   └── heli_params_alphaone.json # Parâmetros do AlphaOne
+│
+└── results/AH1S/
+    └── CASO{1..4}/
+        ├── resultado.txt         # Tabela de potências, velocidades e consumo
+        ├── dados.json            # Dados numéricos serializados
+        ├── Balanco_Fase{2..5}_*.png  # Curva P(V) com VDM/VAM e decomposição
+        └── Polar_Fase{2..5}_*.png    # Polar de velocidade vertical
 ```
+> ¹ `analisar_fase` e `atribui_fase` existem como arquivos separados em `src/` para compatibilidade com Octave.
+> No MATLAB, estão definidas como *local functions* diretamente em `main.m`.
 
 ### Descrição dos módulos
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `ISA.m` | Calcula $\rho$, $T$ e $P$ para qualquer altitude-pressão com desvio $\Delta T_\text{ISA}$ |
-| `Calcular_Fase.m` | Resolve o iterativo de Glauert, calcula todos os $C_P$ e retorna potências em kW e $W_\text{final}$ |
-| `Calcular_Fase_PesoMedio.m` | Aplica o preditor-corretor sobre `Calcular_Fase` para maior precisão |
-| `analisar_fase.m` | Chama `Polar_Velocidade` e `Analise_Velocidades_Cruzeiro`; retorna VDM, VAM, Vy |
-| `Analise_Velocidades_Cruzeiro.m` | Varre velocidades de 0–200 kt; acha VDM (tangente) e VAM (mínimo) |
-| `Polar_Velocidade.m` | Constrói a polar vertical; determina Vy, Vvm e Vrm |
-| `LAB03_main.m` | Define os 4 casos, executa as 6 fases em sequência, exporta resultados |
+| `main.m` | Define aeronáve, casos e parâmetros; executa as 6 fases em sequência |
+| `src/Calcular_Fase.m` | Resolve o iterativo de Glauert, calcula todos os $C_P$; flag `usar_peso_medio` ativa o preditor-corretor |
+| `src/Analise_Velocidades_Cruzeiro.m` | Varre 0–200 kt; calcula VDM (tangente) e VAM (mínimo); plota P(V) e decomposição |
+| `src/Polar_Velocidade.m` | Constrói a polar vertical; determina Vy, Vvm e Vrm |
+| `utils/ISA.m` | Calcula $\rho$, $T$ e $P$ para qualquer altitude-pressão com desvio $\Delta T_\text{ISA}$ |
+| `utils/Exportar_Resultados.m` | Formata e grava `resultado.txt` e `dados.json` por caso |
+| `utils/plotar_caso.py` | Lê `dados.json` e gera os gráficos PNG em `results/` |
 
 ---
 
@@ -124,7 +132,7 @@ onde $z = h_\text{solo} + h_\text{rotor}$ e $D = 2R$.
 
 ### 6. Preditor-corretor de peso médio
 
-O consumo de combustível em cada fase é calculado pelo método Preditor-Corretor para contabilizar a variação de peso durante a fase:
+O consumo de combustível em cada fase é calculado pelo método preditor-corretor para contabilizar a variação de peso durante a fase. Este método está integrado diretamente em `Calcular_Fase` e é ativado pelo nono parâmetro opcional `usar_peso_medio = true` — mantendo a interface simples (peso fixo, sem o flag) para contextos que não requerem precisão extra (e.g., geração de polares):
 
 $$W_\text{final}^* = W_\text{ini} - \Delta W\bigl(W_\text{ini}\bigr) \quad \text{(Preditor)}$$
 
@@ -195,9 +203,18 @@ A polar mostra a curva de máxima razão de subida (envelope superior) e a curva
 
 ## Execução
 
+**MATLAB** (a partir da raiz do projeto):
 ```matlab
-% No MATLAB/Octave, a partir da pasta do projeto:
-LAB03_main
+main
+```
+
+**Octave** (a partir da raiz do projeto):
+```bash
+octave --no-gui --eval "run('main.m')"
 ```
 
 Os resultados são gravados em `results/AH1S/CASO{1..4}/resultado.txt` e `dados.json`.
+Para gerar os gráficos PNG após a simulação:
+```bash
+python3 utils/plotar_caso.py --aeronave AH1S
+```
