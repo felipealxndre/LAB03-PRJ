@@ -21,7 +21,7 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
 
 
     %% 1. POTÊNCIA DISPONÍVEL DO MOTOR (PEM)
-    P_disp_hp = heli.P_disp_hp;   % PEM: potência máxima do motor (Eq. 2.16 do relatório)
+    P_disp_hp = heli.P_disp_hp;
 
 
     %% 2. VARREDURA DE VELOCIDADES — VOO NIVELADO OGE

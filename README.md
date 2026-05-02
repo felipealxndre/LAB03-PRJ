@@ -80,18 +80,13 @@ A missão completa é composta por seis fases, todas a ISA+20 °C:
 
 ### 1. `utils/ISA.m` — Atmosfera Padrão Internacional com desvio de temperatura
 
-Para uma altitude-pressão $Z_p$ (ft) e desvio $\Delta T_\text{ISA}$ (°C), o modelo de troposfera usa:
+Para uma altitude-pressão $Z_p$ e desvio $\Delta T_\text{ISA}$:
 
-$$T_\text{std} = T_0 + L \cdot Z_{p,m} \qquad \text{(temperatura padrão, base para a pressão)}$$
+$$T_\text{std} = T_0 + L \cdot Z_p \qquad T_\text{real} = T_\text{std} + \Delta T_\text{ISA}$$
 
-$$T_\text{real} = T_\text{std} + \Delta T_\text{ISA} \qquad \text{(temperatura real, base para a densidade)}$$
+$$P = P_0 \left(\frac{T_\text{std}}{T_0}\right)^{-g/(LR)}, \qquad \rho = \rho_0 \cdot \frac{P/P_0}{T_\text{real}/T_0}$$
 
-$$P = P_0 \left(\frac{T_\text{std}}{T_0}\right)^{-g/(LR)}, \qquad \sigma_\rho = \frac{P/P_0}{T_\text{real}/T_0}, \qquad \rho = \rho_0 \cdot \sigma_\rho$$
-
-Constantes: $T_0 = 288{,}15$ K, $P_0 = 101\,325$ Pa, $\rho_0 = 0{,}0023769$ slug/ft³, $L = -0{,}0065$ K/m.
-
-> **Hipótese:** modelo de troposfera válido até $\approx 36\,000$ ft; não inclui tropopausa nem estratosfera.
-> O desvio $\Delta T_\text{ISA}$ altera apenas a densidade (via $T_\text{real}$), mantendo a pressão na curva ISA padrão — isso é fisicamente correto em dias quentes/frios.
+> **Hipótese:** o desvio $\Delta T_\text{ISA}$ altera apenas a densidade (via $T_\text{real}$), mantendo a pressão na curva ISA padrão — fisicamente correto em dias quentes ou frios.
 
 ---
 
@@ -118,48 +113,35 @@ $$\lambda_i^{(n+1)} = \frac{C_T/2}{\sqrt{\mu^2 + \left(\lambda_c^\text{iter} + \
 
 $$C_{P,\text{ind}} = k_i \frac{C_T^2}{2\sqrt{\mu^2 + (\lambda_c^\text{iter} + \lambda_i)^2}} \qquad \text{(induzida)}$$
 
-$$C_{P,\text{perf}} = \frac{\sigma\,C_{d0}}{8}\left(1 + 4{,}65\,\mu^2\right) \qquad \text{(perfil — arrasto das pás)}$$
+$$C_{P,\text{perf}} = \frac{\sigma\,C_{d0}}{8}\left(1 + 4{,}65\,\mu^2\right) \qquad \text{(perfil)}$$
 
-$$C_{P,\text{par}} = \frac{1}{2}\frac{f}{A}\,\mu^3 \qquad \text{(parasita — arrasto da fuselagem, } \propto V^3 \text{)}$$
+$$C_{P,\text{par}} = \frac{1}{2}\frac{f}{A}\,\mu^3 \qquad \text{(parasita,}\ \propto V^3\text{)}$$
 
-$$C_{P,\text{vert}} = \lambda_c\,C_T \qquad \text{(subida/descida — negativo em descida)}$$
+$$C_{P,\text{vert}} = \lambda_c\,C_T \qquad \text{(subida/descida)}$$
 
-$$C_{P,R} = C_{P,\text{ind}} + C_{P,\text{perf}} + C_{P,\text{par}} + C_{P,\text{vert}} \qquad \text{(potência total ao rotor)}$$
+$$C_{P,R} = C_{P,\text{ind}} + C_{P,\text{perf}} + C_{P,\text{par}} + C_{P,\text{vert}}, \qquad C_{P,\text{misc}} = \left(\frac{1}{\eta_m} - 1\right) C_{P,R}$$
 
-$$C_{P,\text{misc}} = \left(\frac{1}{\eta_m} - 1\right) C_{P,R}, \qquad C_{P,\text{motor}} = \frac{C_{P,R}}{\eta_m} \qquad \text{(eficiência mecânica)}$$
+> $\eta_m$ agrupa rotor de cauda, transmissão e acessórios — a diferença entre $C_{P,R}$ e $C_{P,\text{motor}} = C_{P,R}/\eta_m$ é dissipada como $C_{P,\text{misc}}$.
 
-> $\eta_m$ agrupa rotor de cauda, transmissão e acessórios. Qualquer potência além de $C_{P,R}$ é dissipada como $C_{P,\text{misc}}$.
+#### 2.4 Consumo de combustível
 
-#### 2.4 Conversão de $C_P$ para potência dimensional
+$$\dot{W}_\text{comb} = \text{SFC} \cdot P_{eM}, \qquad W_\text{final} = W - \dot{W}_\text{comb} \cdot \Delta t$$
 
-$$P\ [\text{kW}] = \underbrace{\rho\,A\,(\Omega R)^3}_{\text{fator adimensional}} \cdot C_P \cdot \underbrace{\frac{1}{550}}_{\text{ft·lbf/s → hp}} \cdot \underbrace{0{,}7457}_{\text{hp → kW}}$$
+#### 2.5 Correção de Efeito Solo — método de Prouty
 
-#### 2.5 Consumo de combustível
-
-$$\dot{W}_\text{comb} = \text{SFC} \times P_{eM}\,[\text{hp}] \quad [\text{lb/h}]$$
-
-$$W_\text{final} = W - \dot{W}_\text{comb} \times \frac{\Delta t_\text{min}}{60}$$
-
-#### 2.6 Correção de Efeito Solo — método de Prouty
-
-Ativada apenas quando $V < 1$ kt e $h_\text{solo}$ é finito ($\ne \infty$). O fator $k_\text{IGE}$ é interpolado a partir dos dados experimentais de Prouty pela razão altura-diâmetro $z/D$:
+Ativada apenas quando $V < 1$ kt e $h_\text{solo}$ é finito. O fator $k_\text{IGE}$ é interpolado em função da razão altura-diâmetro $z/D$:
 
 $$C_{P,\text{ind}}^\text{IGE} = C_{P,\text{ind}}^\text{OGE} \cdot k_\text{IGE}\!\left(\frac{z}{D}\right), \qquad z = h_\text{solo} + h_\text{rotor},\quad D = 2R$$
 
-O polinômio de grau 4 é ajustado aos 9 pontos tabelados de Prouty no intervalo $z/D \in [0{,}43,\,1{,}16]$. Fora desse intervalo ($z/D \geq 1$), nenhuma correção é aplicada (efeito solo desprezível).
+Polinômio de grau 4 ajustado aos 9 pontos tabelados de Prouty para $z/D \in [0{,}43,\,1{,}16]$; fora desse intervalo ($z/D \geq 1$) a correção é desprezível.
 
-#### 2.7 Preditor-corretor de peso médio
+#### 2.6 Preditor-corretor de peso médio
 
-Ativado por `usar_peso_medio = true`. Corrige o viés de usar o peso inicial para toda a fase:
+Ativado por `usar_peso_medio = true`. Corrige o viés de usar o peso inicial em fases longas:
 
-$$W_\text{pred} = W_\text{ini} - \Delta W(W_\text{ini}) \qquad \text{(1ª passagem — preditor)}$$
+$$W_\text{pred} = W_\text{ini} - \Delta W(W_\text{ini}), \qquad W_\text{med} = \tfrac{1}{2}(W_\text{ini} + W_\text{pred}), \qquad W_\text{final} = W_\text{ini} - \Delta W(W_\text{med})$$
 
-$$W_\text{med} = \frac{W_\text{ini} + W_\text{pred}}{2} \qquad \text{(peso médio estimado)}$$
-
-$$W_\text{final} = W_\text{ini} - \Delta W(W_\text{med}) \qquad \text{(2ª passagem — corretor)}$$
-
-> **Quando usar:** recomendado para fases onde $\Delta W / W \gtrsim 5\%$ (tipicamente cruzeiro de centenas de NM).
-> Para pairado, subida e descida, peso fixo é suficiente ($\Delta W / W \lesssim 1\%$).
+> **Quando usar:** recomendado para fases onde $\Delta W / W \gtrsim 5\%$ (cruzeiros de centenas de NM). Para pairado, subida e descida, peso fixo é suficiente.
 
 ---
 
@@ -185,21 +167,19 @@ $$V_\text{DM} = \arg\min_{V}\; \frac{P_\text{tot}(V)}{V_\text{GS}} = \arg\min_{V
 
 #### 3.3 Velocidade Máxima de Voo Nivelado ($V_\text{max}$)
 
-É a maior velocidade para a qual $P_\text{tot}(V) \leq P_\text{disp}$. Encontrada por interpolação linear no cruzamento entre $\delta_P = P_\text{disp} - P_\text{tot}$ e zero:
+É a maior velocidade para a qual a potência total iguala a disponível:
 
-$$V_\text{max} = \text{interp1}\!\left(\delta_P,\, V_\text{TAS},\, 0\right) \quad \text{na última passagem de } \delta_P \geq 0 \to \delta_P < 0$$
+$$V_\text{max} = \max \{ V : P_\text{tot}(V) = P_\text{disp} \}$$
 
 ---
 
 ### 4. `src/Polar_Velocidade.m` — Envelope de Performance Vertical
 
-Varre $V_\text{TAS} \in [0,\,180]$ kt com passo de 0,1 kt, calculando para cada ponto a razão vertical em duas condições:
+Varre $V_\text{TAS} \in [0,\,180]$ kt com passo de 0,1 kt, calculando a razão vertical em duas condições:
 
-$$v_Z(V) = \frac{(P_\text{disp} - P_\text{tot})\,[\text{hp}] \times 33\,000}{W\,[\text{lb}]} \quad [\text{fpm}] \qquad \text{(envelope de subida — com motor na PMC)}$$
+$$v_Z = \frac{P_\text{disp} - P_\text{tot}(V)}{W} \qquad \text{(subida na PMC — excesso de potência específica)}$$
 
-$$v_{Z,\text{auto}}(V) = \frac{-P_\text{tot}(V)\,[\text{hp}] \times 33\,000}{W\,[\text{lb}]} \quad [\text{fpm}] \qquad \text{(autorrotação — motor desligado)}$$
-
-> O fator 33 000 converte hp para ft·lb/min; dividido por $W$ [lb] resulta em ft/min de razão vertical.
+$$v_{Z,\text{auto}} = -\frac{P_\text{tot}(V)}{W} \qquad \text{(autorrotação — motor desligado)}$$
 
 #### 4.1 Velocidades de razão (independem do vento)
 
@@ -230,7 +210,7 @@ Chama `Polar_Velocidade` e `Analise_Velocidades_Cruzeiro` em sequência para uma
 
 ## Resultados
 
-### Tabela-resumo dos 4 casos
+### Tabela-síntese dos 4 casos
 
 | Caso | Vento | Dist. | $V_c$ sub. | Comb. gasto (lb) | Margem (lb) | Potência | Combustível |
 |---|---|---|---|---|---|---|---|
@@ -239,32 +219,84 @@ Chama `Polar_Velocidade` e `Analise_Velocidades_Cruzeiro` em sequência para uma
 | 3 | 0 kt | 400 NM | 2 000 fpm | 1 541,86 | +142,14 | ❌ | ✅ |
 | 4 | 0 kt | 440 NM | 1 000 fpm | 1 675,98 | +8,02 | ✅ | ✅ |
 
-> **Caso 2** — O vento de proa de 15 kt aumenta o tempo de cruzeiro em F3 (VDM de 400 NM com $V_{GS}$ reduzida), tornando o combustível insuficiente.  
-> **Caso 3** — A razão de subida de 2 000 fpm exige potência superior à disponível (1 290 hp), inviabilizando a fase de subida.
+> **Caso 2** — vento de proa reduz $V_{GS}$ → tempo de cruzeiro em F3 aumenta → combustível insuficiente.  
+> **Caso 3** — $V_c = 2\,000$ fpm exige potência superior à disponível ($1\,290$ hp) → subida inviável.  
+> **Caso 4** — viável, mas a margem de +8 lb indica operação praticamente no limite do tanque.
 
 ---
 
-### Balanço de potência — Caso 1, Fase 3 (Nivelado na VDM, 5 000 ft)
+### Caso 1 — Baseline
 
 ![Balanço de potência F3 — CASO 1](results/AH1S/CASO1/Balanco_Fase3_Nivelado_VDM_Zp5000ft.png)
 
-A reta tangente partindo da origem toca a curva de potência total no ponto de **VDM = 115,9 kt** (sem vento). O ponto de mínimo da curva, em **VAM ≈ 70,3 kt**, é destacado separadamente e utilizado na Fase 4.
-
----
-
-### Polar de velocidade — Caso 1, Fase 2 (Subida na $V_y$, 2 500 ft)
+**Balanço de potência** no cruzeiro nivelado (F3, $Z_p = 5\,000$ ft): a tangente a partir da origem $(V_{GS}=0)$ toca a curva de $P_\text{tot}$ em $V_\text{DM} = 115{,}9$ kt. O mínimo da mesma curva define $V_\text{AM} = 75{,}7$ kt (usada em F4), e o cruzamento com $P_\text{disp}$ dá $V_\text{max} = 156{,}6$ kt.
 
 ![Polar de velocidade F2 — CASO 1](results/AH1S/CASO1/Polar_Fase2_Subida_Zp2500ft.png)
 
-A polar mostra a curva de máxima razão de subida (envelope superior) e a curva de autorotação (envelope inferior). A velocidade $V_y = 72{,}9$ kt corresponde ao pico do envelope superior.
-
----
-
-### Decomposição de potência — Caso 1, Fase 3 (Nivelado na VDM, 5 000 ft)
+**Polar de velocidade** na subida (F2, $Z_p = 2\,500$ ft): envelope superior (subida na PMC) com pico em $V_y = 72{,}9$ kt → $V_\text{zmax} = 1\,954$ fpm; envelope inferior (autorrotação). Como $V_\text{vento} = 0$, as retas tangentes que definem $V_{rM}$ e $V_{rm}$ partem da origem.
 
 ![Decomposição de potência F3 — CASO 1](results/AH1S/CASO1/Decomp_Fase3_Nivelado_VDM_Zp5000ft.png)
 
-A decomposição evidencia como cada componente evolui com a velocidade: a potência induzida cai com o aumento de $V$ (efeito do aumento de $\mu$), enquanto a parasita cresce cubicamente. A potência de perfil cresce moderadamente. O ponto de mínimo da curva total coincide com a **VAM ≈ 70,3 kt**.
+**Decomposição de $P_\text{tot}(V)$**: induzida cai $\propto 1/V$, parasita cresce $\propto V^3$, perfil cresce suavemente $\propto 1 + 4{,}65\mu^2$, miscelânea escala com $P_R$. O mínimo de $P_\text{tot}$ (ponto de $V_\text{AM}$) ocorre na transição entre os regimes induzida-dominada ($V < 60$ kt) e parasita-dominada ($V > 120$ kt).
+
+---
+
+### Figura 1 — Caso 2 vs Caso 1: construção geométrica da VDM com vento de proa
+
+![VDM com tangentes — C1 vs C2](results/AH1S/comparacoes/Comp_VDM_Tangentes_C1vsC2.png)
+
+**Pergunta que responde:** *por que $V_\text{DM}$ aumenta com vento de proa?*
+
+Como o peso e a altitude em F3 são iguais entre C1 e C2, a curva $P_\text{tot}(V)$ é **a mesma** nos dois casos (linha preta). O que muda é a **origem** da reta tangente que define o máximo alcance:
+
+- **Caso 1 (sem vento)** — a reta parte de $(0, 0)$ e toca a curva em $V_\text{DM} = 115{,}9$ kt.
+- **Caso 2 (15 kt de proa)** — a reta parte de $(-15, 0)$, ou seja, do ponto em que $V_{GS} = 0$. Para ter a mesma inclinação mínima ($P/V_{GS}$), ela precisa tocar a curva em ponto de $V$ **maior**: $V_\text{DM} = 121{,}8$ kt.
+
+$$\frac{d}{dV}\left(\frac{P_\text{tot}(V)}{V + V_\text{vento}}\right) = 0 \iff \text{tangência à origem }(-V_\text{vento},\,0)$$
+
+> **Conclusão didática:** o conceito "máximo alcance em relação ao solo" equivale a encontrar a menor razão potência-por-unidade-de-$V_{GS}$. Com vento contrário, o piloto deve voar mais rápido no ar para que o solo passe mais rápido por baixo.
+
+---
+
+### Figura 2 — Caso 2 vs Caso 1: decomposição da potência em $V_\text{DM}$
+
+![Decomposição em VDM — C1 vs C2](results/AH1S/comparacoes/Comp_Decomp_VDM_C1vsC2.png)
+
+**Pergunta que responde:** *voar na $V_\text{DM}$ maior (imposta pelo vento de proa) custa mais potência — quem sobe e quem cai?*
+
+Enquanto a Figura 1 mostra **onde** está cada $V_\text{DM}$ pela construção geométrica das tangentes, esta figura mostra **o que custa** voar lá. Valores extraídos em cada ponto ótimo:
+
+| Componente | Caso 1 ($V_\text{DM,1}=115{,}9$ kt) | Caso 2 ($V_\text{DM,2}=121{,}8$ kt) | Δ |
+|---|---:|---:|---:|
+| $P_\text{ind}$ (induzida, $\propto 1/V$) | 135 kW | 128 kW | **−4,8%** (cai com $V$) |
+| $P_\text{perf}$ (perfil, $\propto 1+4{,}65\mu^2$) | 210 kW | 216 kW | +2,6% |
+| $P_\text{par}$ (parasita, $\propto V^3$) | 189 kW | 219 kW | **+16,1%** (domina) |
+| $P_\text{misc}$ | 94 kW | 99 kW | +5,4% |
+| **$P_\text{tot}$** | **628 kW** | **662 kW** | **+5,4% (+34 kW)** |
+
+O aumento de $V_\text{DM}$ é dominado pela **parcela parasita** ($+30$ kW), **parcialmente compensada** pela queda da induzida ($-7$ kW) — o restante se reparte entre perfil e miscelânea.
+
+> **Conclusão didática:** a $V_\text{DM}$ premia voar mais rápido justamente porque o ganho em $V_{GS}$ compensa o tempo adicional que o vento de proa impõe. Não é "potência de graça": o helicóptero queima $+34$ kW instantâneos, mas cobre a mesma distância no solo em menos tempo. Quando a distância é fixa (como em F3), a integral $P \cdot t$ aumenta, o que explica o estouro de tanque do Caso 2.
+
+---
+
+### Figura 3 — Caso 3 vs Caso 1: causa física da inviabilidade (balanço de potência em subida)
+
+![Potência de subida — C1 vs C3](results/AH1S/comparacoes/Comp_Potencia_Subida_C1vsC3.png)
+
+**Pergunta que responde:** *por que 2 000 fpm é fisicamente inviável?*
+
+Mostrar primeiro a **causa** (potência) antes da **consequência** (razão de subida limitada) torna a explicação direta. A curva de $P_\text{tot}$ em subida é a curva nivelada **deslocada verticalmente** pelo termo $\lambda_c \cdot C_T$, proporcional a $W \cdot V_c$:
+
+- $V_c = 1\,000$ fpm → $+302$ hp em todas as velocidades.
+- $V_c = 2\,000$ fpm → $+604$ hp em todas as velocidades.
+
+Em $V_y = 72{,}9$ kt:
+
+- **Caso 1** — $P_\text{tot} = 1\,002$ hp → **margem de 288 hp** abaixo de $P_\text{disp}$. Subida viável e confortável.
+- **Caso 3** — $P_\text{tot} = 1\,304$ hp → **déficit de 14 hp** acima de $P_\text{disp}$. Subida **fisicamente inviável** — o motor não fornece potência suficiente.
+
+> **Conclusão didática:** a inviabilidade do Caso 3 tem origem no balanço energético básico. A polar de velocidade (que daria $V_{zmax} = 1\,954$ fpm $< 2\,000$ fpm) é apenas a **consequência** desse déficit. O gráfico de potência mostra a causa de forma direta.
 
 ---
 

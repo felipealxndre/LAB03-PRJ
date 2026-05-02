@@ -1,4 +1,4 @@
-function Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, polar, cruzeiro, pasta_saida)
+function Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, polar, cruzeiro, pasta_saida, params)
 % EXPORTAR_RESULTADOS  Salva os resultados de um caso em dois formatos:
 %   - resultado.txt : tabela formatada legível para humanos
 %   - dados.json    : dados estruturados para consumo do plotar_caso.py
@@ -12,6 +12,11 @@ function Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, pola
 %   polar            - Array de structs (índices 2..5) do envelope vertical
 %   cruzeiro         - Array de structs (índices 2..5) das curvas de cruzeiro
 %   pasta_saida      - Pasta de destino (ex: 'results/CASO1')
+%   params           - (opcional) Struct com Vc_sub_fpm e distancia_NM do caso
+
+    if nargin < 9
+        params = struct('Vc_sub_fpm', NaN, 'distancia_NM', NaN);
+    end
 
     if ~exist(pasta_saida, 'dir')
         mkdir(pasta_saida);
@@ -23,7 +28,7 @@ function Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, pola
                  caso, V_vento, heli, missao, total_comb_gasto, margem);
 
     escrever_json(fullfile(pasta_saida, 'dados.json'), ...
-                  caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro);
+                  caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro, params);
 
 end
 
@@ -92,13 +97,16 @@ end
 % =========================================================================
 % Função privada: serializa os dados numéricos para JSON
 % =========================================================================
-function escrever_json(caminho, caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro)
+function escrever_json(caminho, caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro, params)
     dados = struct();
-    dados.caso        = caso;
-    dados.V_vento     = V_vento;
-    dados.P_disp_hp   = heli.P_disp_hp;
-    dados.total_comb  = total_comb_gasto;
-    dados.margem_comb = margem;
+    dados.caso          = caso;
+    dados.V_vento       = V_vento;
+    dados.Vc_sub_fpm    = params.Vc_sub_fpm;
+    dados.distancia_NM  = params.distancia_NM;
+    dados.P_disp_hp     = heli.P_disp_hp;
+    dados.fuel_cap      = heli.fuel_cap;
+    dados.total_comb    = total_comb_gasto;
+    dados.margem_comb   = margem;
 
     dados.fases_nome  = {missao.nome};
     dados.fases_vel   = [missao.vel];
@@ -109,6 +117,7 @@ function escrever_json(caminho, caso, V_vento, heli, missao, total_comb_gasto, m
         dados.(sprintf('polar_F%d', i))    = polar(i);
         dados.(sprintf('cruzeiro_F%d', i)) = cruzeiro(i);
     end
+
 
     fid = fopen(caminho, 'w');
     if fid < 0

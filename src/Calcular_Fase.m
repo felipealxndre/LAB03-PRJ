@@ -104,7 +104,8 @@ function [potencias, W_final] = Calcular_Fase(W, h_solo, Zp, delta_ISA, heli, V_
             p_ige   = polyfit(x_dados, y_dados, 4);
             k_IGE   = polyval(p_ige, zD);
 
-            CP_ind  = CP_ind * k_IGE;   % k_IGE < 1 → reduz potência induzida
+            k_IGE  = max(0.0, min(k_IGE, 1.0));   % limites físicos obrigatórios
+            CP_ind = CP_ind * k_IGE;
         end
     end
 

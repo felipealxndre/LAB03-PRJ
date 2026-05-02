@@ -33,7 +33,7 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
     V_gs    = V_tas + V_v;    % velocidade solo (TAS + vento)
     vZ      = zeros(size(V_tas));   % curva superior (com PEM disponível)
     vZ_auto = zeros(size(V_tas));   % curva inferior (autorotação — sem motor)
-    P_disp_hp = heli.P_disp_hp;   % potência máxima disponível do motor
+    P_disp_hp = heli.P_disp_hp;
     
     for k = 1:length(V_tas)
 

@@ -1,9 +1,14 @@
 *.pdf
 *.env
 *.py
+__pycache__/
 /results/**
 !/results/AH1S/
 !/results/AH1S/CASO1/
 !/results/AH1S/CASO1/Balanco_Fase3_Nivelado_VDM_Zp5000ft.png
 !/results/AH1S/CASO1/Polar_Fase2_Subida_Zp2500ft.png
 !/results/AH1S/CASO1/Decomp_Fase3_Nivelado_VDM_Zp5000ft.png
+!/results/AH1S/comparacoes/
+!/results/AH1S/comparacoes/Comp_VDM_Tangentes_C1vsC2.png
+!/results/AH1S/comparacoes/Comp_Decomp_VDM_C1vsC2.png
+!/results/AH1S/comparacoes/Comp_Potencia_Subida_C1vsC3.png
