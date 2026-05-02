@@ -1,5 +1,5 @@
 # PRJ-91 — Laboratório 3: Requisito de Missão
-### Helicóptero AH-1S Cobra · ISA+20 · Sistema Imperial
+### Helicóptero AH-1S Cobra
 
 ---
 

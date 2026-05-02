@@ -1,18 +1,14 @@
-% =========================================================================
-% PRJ-91: Laboratório 3 - Simulação de Missão Completa
-% =========================================================================
+% PRJ-91 — Laboratório 3: simulação da missão completa
 clear; clc; close all;
 
-% Adiciona src/ e utils/ ao path
 addpath(fullfile(fileparts(mfilename('fullpath')), 'src'));
 addpath(fullfile(fileparts(mfilename('fullpath')), 'utils'));
 
-
-% ── AH-1S Cobra ──────────────────────────────────────────────────────────
+% AH-1S Cobra
 heli         = jsondecode(fileread(fullfile(fileparts(mfilename('fullpath')), 'config', 'heli_params.json')));
 output_base  = fullfile(fileparts(mfilename('fullpath')), 'results', 'AH1S');
-fase3_VDM    = true;    % F3 = cruzeiro na VDM, F4 = loiter na VAM
-tempo_loiter = 30;      % [min] duração da fase de loiter/reserva
+fase3_VDM    = true;    % true: F3 = VDM, F4 = VAM;  false: inverte
+tempo_loiter = 30;      % [min]
 casos = [ ...           %  id | V_vento(kt) | dist(NM) | Vc_sub(fpm)
     1,    0,   400,  1000 ; ...
     2,  -15,   400,  1000 ; ...
@@ -21,11 +17,10 @@ casos = [ ...           %  id | V_vento(kt) | dist(NM) | Vc_sub(fpm)
 
 heli.A         = pi * heli.R^2;
 heli.P_disp_kw = heli.P_disp_hp * 0.7457;
-plotar         = false;   % true → gera figuras no MATLAB; false → só exporta dados
+plotar         = false;
 
-dT = 20;   % [°C] Desvio ISA
+dT = 20;   % desvio ISA [°C]
 
-%% LOOP PRINCIPAL - todos os 4 casos
 for k = 1 : size(casos, 1)
 
     caso        = casos(k, 1);
@@ -46,20 +41,14 @@ for k = 1 : size(casos, 1)
     polar            = struct([]);
     cruzeiro         = struct([]);
 
-
-    
-
-    % FASE 1 - PAIRADO INICIAL IGE ------------------------------------------
+    % Fase 1 — pairado inicial IGE
     W_antes = W_atual;
     [potencias, W_atual] = Calcular_Fase(W_atual, 6, 0, dT, heli, 0, 0, 5);
     missao(1)        = atribui_fase('Pairado IGE', 0, potencias, W_antes - W_atual);
     total_comb_gasto = total_comb_gasto + missao(1).comb;
 
-
-
-
-    % FASE 2 - SUBIDA NA Vy --------------------------------------------------
-    Zp_2    = 2500;   % altitude média (0 → 5000 ft)
+    % Fase 2 — subida na Vy (0 → 5000 ft)
+    Zp_2    = 2500;
     tempo_2 = 5000 / Vc_sub_fpm;
 
     [polar(2), cruzeiro(2), Vy_2, ~, ~, ~, ~] = ...
@@ -70,29 +59,16 @@ for k = 1 : size(casos, 1)
     missao(2)        = atribui_fase('Subida na Vy', Vy_2, potencias, W_antes - W_atual);
     total_comb_gasto = total_comb_gasto + missao(2).comb;
 
-
-
-    % FASES 3 + 4 - CRUZEIRO + LOITER ---------------------------------------
-    % analisar_fase retorna [polar, cruzeiro, Vy, VDM, VAM, Vvm, Vrm]
-    %   4.º saída = VDM — velocidade de MAIOR ALCANCE  (Distância Máxima)
-    %   5.º saída = VAM — velocidade de MAIOR AUTONOMIA (Autonomia Máxima)
+    % Fases 3 e 4 — cruzeiro + loiter
     if fase3_VDM
-        % F3 = distância na VDM, F4 = loiter na VAM
         [polar(3), cruzeiro(3), ~, V_f3, ~, ~, ~] = ...
             analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
         nome_f3 = 'Nivelado na VDM';
-
-        [polar(4), cruzeiro(4), ~, ~, V_f4, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);  % será recalculado após F3
         nome_f4 = 'Nivelado na VAM';
     else
-        % F3 = cruzeiro na VAM, F4 = loiter na VDM  (missão com fases invertidas)
         [polar(3), cruzeiro(3), ~, ~, V_f3, ~, ~] = ...
             analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
         nome_f3 = 'Nivelado na VAM';
-
-        [polar(4), cruzeiro(4), ~, V_f4, ~, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);  % será recalculado após F3
         nome_f4 = 'Nivelado na VDM';
     end
 
@@ -104,7 +80,7 @@ for k = 1 : size(casos, 1)
     missao(3)        = atribui_fase(nome_f3, V_f3, potencias, W_antes - W_atual);
     total_comb_gasto = total_comb_gasto + missao(3).comb;
 
-    % Recalcula V_f4 com o peso atualizado após F3
+    % F4 é recalculada após F3 para usar o peso já reduzido pelo cruzeiro
     if fase3_VDM
         [polar(4), cruzeiro(4), ~, ~, V_f4, ~, ~] = ...
             analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
@@ -118,12 +94,9 @@ for k = 1 : size(casos, 1)
     missao(4)        = atribui_fase(nome_f4, V_f4, potencias, W_antes - W_atual);
     total_comb_gasto = total_comb_gasto + missao(4).comb;
 
-
-
-
-    % FASE 5 - DESCIDA NA Vy ------------------------------------------------
+    % Fase 5 — descida na Vy (5000 → 0 ft a 1000 fpm)
     Zp_5    = 2500;
-    tempo_5 = 5000 / 1000;   % 5000 ft a 1000 fpm
+    tempo_5 = 5000 / 1000;
 
     [polar(5), cruzeiro(5), Vy_5, ~, ~, ~, ~] = ...
         analisar_fase(W_atual, Zp_5, dT, heli, -1000, V_vento, plotar);
@@ -133,21 +106,14 @@ for k = 1 : size(casos, 1)
     missao(5)        = atribui_fase('Descida na Vy', Vy_5, potencias, W_antes - W_atual);
     total_comb_gasto = total_comb_gasto + missao(5).comb;
 
-
-    
-
-    % FASE 6 - PAIRADO FINAL IGE --------------------------------------------
+    % Fase 6 — pairado final IGE
     W_antes = W_atual;
     [potencias, W_atual] = Calcular_Fase(W_atual, 6, 0, dT, heli, 0, 0, 5, true);
     missao(6)        = atribui_fase('Pairado IGE', 0, potencias, W_antes - W_atual);
     total_comb_gasto = total_comb_gasto + missao(6).comb;
 
-    
-
-    %% EXPORTAÇÃO
     params = struct('Vc_sub_fpm', Vc_sub_fpm, 'distancia_NM', distancia_3);
     Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, polar, cruzeiro, output_folder, params);
 end
 
 fprintf('\nTodos os casos concluídos.\n');
-
