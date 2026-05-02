@@ -1,109 +1,126 @@
 function [V_tas, V_gs, Vc_v, Vy, RoC_max, Vvm, Vrm, Vc_auto, VrM] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v)
-    % POLAR_VELOCIDADE - Gera o envelope de performance vertical do helicóptero.
+    % POLAR_VELOCIDADE  Constrói o envelope de performance vertical do helicóptero.
     %
-    % INPUTS:
-    %   W       : Peso atual da aeronave [lb]
-    %   Zp      : Altitude de pressão da fase [ft]
-    %   dI      : Desvio de temperatura em relação ao padrão (Delta ISA) [°C]
-    %   heli    : Struct contendo os parâmetros geométricos e de motor da aeronave
-    %   RoC_m   : Razão de subida (ou descida) comandada na missão [fpm]
-    %   plotar  : Booleano (true/false) para gerar o gráfico
-    %   V_a     : Velocidade aerodinâmica alvo para extração de RoC específica [kt]
-    %   V_v     : Velocidade do vento (Positivo = Cauda, Negativo = Proa) [kt]
+    % Entradas:
+    %   W      - Peso atual da aeronave [lb]
+    %   Zp     - Altitude de pressão [ft]
+    %   dI     - Desvio de temperatura ISA [°C]
+    %   heli   - Struct com parâmetros da aeronave
+    %   RoC_m  - Razão de subida comandada na missão [fpm]  (usado só no plot)
+    %   plotar - Booleano: gera figuras se true
+    %   V_a    - (Opcional) Velocidade alvo para extração de RoC específica [kt]
+    %   V_v    - (Opcional) Velocidade do vento [kt]  (+ cauda, − proa). Padrão: 0
     %
-    % OUTPUTS:
-    %   V_tas   : Vetor de velocidades aerodinâmicas (True Airspeed) [kt]
-    %   V_gs    : Vetor de velocidades em relação ao solo (Ground Speed) [kt]
-    %   Vc_v    : Vetor da curva superior (Máxima Razão de Subida) [fpm]
-    %   Vy      : Velocidade de Melhor Razão de Subida (escalar) [kt]
-    %   RoC_max : Razão de subida máxima atingível (escalar) [fpm]
-    %   Vvm     : Velocidade de Mínima Razão de Descida (escalar) [kt]
-    %   Vrm     : Velocidade de Mínima Rampa de Descida (escalar) [kt]
+    % Saídas:
+    %   V_tas   - Vetor de velocidades aerodinâmicas varridas [kt]
+    %   V_gs    - Vetor de velocidades em relação ao solo [kt]
+    %   Vc_v    - Curva superior: razão de subida máxima em cada V_tas [fpm]
+    %   Vy      - Velocidade de Máxima Razão de Subida [kt]
+    %   RoC_max - Razão de subida máxima atingível [fpm]
+    %   Vvm     - Velocidade de Mínima Razão de Descida [kt]
+    %   Vrm     - Velocidade de Mínima Rampa de Descida [kt]
+    %   Vc_auto - Curva inferior: razão de descida em autorotação [fpm]
+    %   VrM     - Velocidade de Máxima Rampa de Subida [kt]
 
-    %% 1. INICIALIZAÇÃO E TRATAMENTO DE INPUTS
+
+    %% 1. ENTRADAS OPCIONAIS
     if nargin < 8 || isempty(V_v), V_v = 0; end
-    if nargin < 7, V_a = []; end
-    
-    % Passo de 0.1 kt para a precisão exigida no laboratório
-    V_tas = 0:0.1:180;             
-    V_gs  = V_tas + V_v;           % Ground Speed considerando o vento [kt]
-    Vc_v  = zeros(size(V_tas));    % Curva Superior: Subida Máxima (Com Potência)
-    Vc_auto = zeros(size(V_tas));  % Curva Inferior: Autorotação (Sem Potência)
-    
-    P_disp_hp = heli.P_disp_hp;    % Limite de potência contínua (MCP) [hp]
+    if nargin < 7,                 V_a = []; end
 
-    %% 2. VARREDURA DE PERFORMANCE AERODINÂMICA
+
+    %% 2. VARREDURA — PERFORMANCE VERTICAL PARA CADA VELOCIDADE
+    %
+    % Passo de 0.1 kt para precisão numérica.
+    % tempo_min = 1 é valor fictício (apenas P_req é usada).
+    V_tas   = 0 : 0.1 : 180;
+    V_gs    = V_tas + V_v;
+
+    Vc_v    = zeros(size(V_tas));   % curva superior (com potência disponível)
+    Vc_auto = zeros(size(V_tas));   % curva inferior (autorotação, sem motor)
+
+    P_disp_hp = heli.P_disp_hp;
+
     for k = 1:length(V_tas)
-        % Calcula a potência necessária para voo nivelado (Vc = 0)
+        % Calcula potência necessária para voo nivelado a esta velocidade
         [r_k, ~] = Calcular_Fase(W, inf, Zp, dI, heli, V_tas(k), 0, 1);
-        Preq_hp = r_k.P_tot / 0.7457;
+        Preq_hp  = r_k.P_tot / 0.7457;   % kW → hp
 
-        % Curva Superior (Subida): Vc = (Pot_Sobra * 33000) / W
-        Vc_v(k) = ((P_disp_hp - Preq_hp) * 33000) / W;
+        % Razão de subida máxima: potência excedente converte em energia potencial
+        % Vc = (P_disp - P_req) [hp] × 33000 [ft·lbf/min / hp] / W [lbf]
+        Vc_v(k)    = (P_disp_hp - Preq_hp) * 33000 / W;
 
-        % Curva Inferior (Descida/Autorotação): Vc = -(Pot_Req * 33000) / W
-        Vc_auto(k) = -(Preq_hp * 33000) / W;
+        % Autorotação: toda P_req vira descida (sem motor, P_disp = 0)
+        Vc_auto(k) = -Preq_hp * 33000 / W;
     end
 
-    %% 3. DETERMINAÇÃO DAS VELOCIDADES NOTÁVEIS
-    
-    % --- Velocidades de Razão (Imunes ao vento) ---
-    [RoC_max, idx_vM] = max(Vc_v); 
-    Vy = V_tas(idx_vM);           % Velocidade de Máxima Razão de Subida (Vy)
-    
-    [RoC_min_des, idx_vm] = max(Vc_auto); 
-    Vvm = V_tas(idx_vm);          % Velocidade de Mínima Razão de Descida
 
-    % --- Velocidades de Rampa (Influenciadas pelo vento) ---
-    % Calculadas pela tangente que parte da origem aerodinâmica (-V_vento, 0)
-    gamma_subida  = Vc_v ./ (V_tas + V_v);
-    gamma_descida = Vc_auto ./ (V_tas + V_v);
+    %% 3. VELOCIDADES NOTÁVEIS
 
-    % Filtro para evitar instabilidades na origem (V_gs próximo de zero)
-    gamma_subida(V_gs <= 5) = -inf; 
+    % ── Velocidades de Razão — independem do vento ───────────────────────────
+    % Vy:  pico do envelope de subida → maior razão de subida (fpm)
+    % Vvm: pico do envelope de descida → menor taxa de descida em autorotação
+    [RoC_max, idx_vM] = max(Vc_v);
+    Vy = V_tas(idx_vM);
+
+    [~, idx_vm] = max(Vc_auto);   % max de Vc_auto = menos negativo = menor descida
+    Vvm = V_tas(idx_vm);
+
+    % ── Velocidades de Rampa — dependem do vento ─────────────────────────────
+    % gamma = Vc / V_GS = tangente do ângulo de trajetória
+    % Equivale geometricamente à tangente traçada da origem (−V_vento, 0)
+    % à curva Vc(V_TAS).
+    gamma_subida  = Vc_v    ./ V_gs;
+    gamma_descida = Vc_auto ./ V_gs;
+
+    % Filtra V_gs ≤ 5 kt para evitar instabilidade numérica perto da origem
+    gamma_subida (V_gs <= 5) = -inf;
     gamma_descida(V_gs <= 5) = -inf;
 
-    [~, idx_rM] = max(gamma_subida);  VrM = V_tas(idx_rM); % Máxima Rampa de Subida
-    [~, idx_rm] = max(gamma_descida); Vrm = V_tas(idx_rm); % Mínima Rampa de Descida
+    [~, idx_rM] = max(gamma_subida);   % máxima rampa de subida (melhor ângulo de climb)
+    VrM = V_tas(idx_rM);
 
-    %% 4. PLOTAGEM GEOMÉTRICA
-    if plotar
-        figure('Color','w', 'Name', sprintf('Polar de Velocidade | %.0f lb | %0.f ft', W, Zp));
-        hold on; grid on;
-        
-        % Plot das Curvas de Performance
-        plot(V_tas, Vc_v, 'b', 'LineWidth', 2, 'DisplayName', 'Envelope de Subida (MCP)');
-        plot(V_tas, Vc_auto, 'r', 'LineWidth', 2, 'DisplayName', 'Autorotação (Sem Potência)');
-        
-        % Linhas de Referência
-        plot([min(V_tas)-10, max(V_tas)], [0 0], 'k', 'HandleVisibility', 'off');
-        plot([0 0], [min(Vc_auto)-200, max(Vc_v)+200], 'k:', 'HandleVisibility', 'off');
-        
-        % Plot das Tangentes de Rampa
-        plot([-V_v, VrM], [0, Vc_v(idx_rM)], 'b--', 'HandleVisibility', 'off');
-        plot([-V_v, Vrm], [0, Vc_auto(idx_rm)], 'r--', 'HandleVisibility', 'off');
-        
-        % Marcadores de Subida (VvM e VrM)
-        plot(Vy, RoC_max, 'b*', 'MarkerSize', 10, 'DisplayName', sprintf('Vy = %.1f kt', Vy));
-        plot(VrM, Vc_v(idx_rM), 'bo', 'MarkerFaceColor', 'b', 'DisplayName', sprintf('VrM = %.1f kt', VrM));
-        
-        % Marcadores de Descida (Vvm e Vrm)
-        plot(Vvm, RoC_min_des, 'r*', 'MarkerSize', 10, 'DisplayName', sprintf('Vvm = %.1f kt', Vvm));
-        plot(Vrm, Vc_auto(idx_rm), 'ro', 'MarkerFaceColor', 'r', 'DisplayName', sprintf('Vrm = %.1f kt', Vrm));
+    [~, idx_rm] = max(gamma_descida);  % mínima rampa de descida (menor ângulo de planar)
+    Vrm = V_tas(idx_rm);
 
-        % Ponto da Missão Atual
-        if ~isempty(RoC_m) && RoC_m ~= 0
-            plot(Vy, RoC_m, 'go', 'MarkerFaceColor', 'g', 'MarkerSize', 8, 'DisplayName', 'Ponto da Missão');
-        end
 
-        % Estética e Legendas
-        xlabel('Velocidade Aerodinâmica - TAS (kt)', 'FontWeight', 'bold');
-        ylabel('Razão Vertical (fpm)', 'FontWeight', 'bold');
-        title(sprintf('Polar de Velocidade | W: %.0f lb | Zp: %.0f ft | Vento: %.0f kt', W, Zp, V_v));
-        legend('Location', 'northeastoutside');
-        
-        % Ajuste do eixo para mostrar a "origem do vento"
-        xlim([min(-V_v - 10, 0), 180]);
-        ylim([min(Vc_auto)-500, max(Vc_v)+500]);
+    %% 4. GRÁFICO (OPCIONAL)
+    if ~plotar, return; end
+
+    figure('Color', 'w', 'Name', sprintf('Polar de Velocidade | %.0f lb | %.0f ft', W, Zp));
+    hold on; grid on;
+
+    % Envelopes de subida e autorotação
+    plot(V_tas, Vc_v,    'b', 'LineWidth', 2, 'DisplayName', 'Envelope de Subida (MCP)');
+    plot(V_tas, Vc_auto, 'r', 'LineWidth', 2, 'DisplayName', 'Autorotação (Sem Potência)');
+
+    % Eixos de referência
+    plot([min(V_tas) - 10, max(V_tas)], [0 0],                 'k',  'HandleVisibility', 'off');
+    plot([0 0], [min(Vc_auto) - 200, max(Vc_v) + 200],         'k:', 'HandleVisibility', 'off');
+
+    % Retas de tangente (origem = −V_vento)
+    plot([-V_v, VrM], [0, Vc_v(idx_rM)],    'b--', 'HandleVisibility', 'off');
+    plot([-V_v, Vrm], [0, Vc_auto(idx_rm)],  'r--', 'HandleVisibility', 'off');
+
+    % Pontos notáveis de subida
+    plot(Vy,  Vc_v(idx_vM),  'b*', 'MarkerSize', 10, 'DisplayName', sprintf('Vy  = %.1f kt', Vy));
+    plot(VrM, Vc_v(idx_rM),  'bo', 'MarkerFaceColor', 'b', ...
+         'DisplayName', sprintf('VrM = %.1f kt', VrM));
+
+    % Pontos notáveis de descida
+    plot(Vvm, Vc_auto(idx_vm), 'r*', 'MarkerSize', 10, 'DisplayName', sprintf('Vvm = %.1f kt', Vvm));
+    plot(Vrm, Vc_auto(idx_rm), 'ro', 'MarkerFaceColor', 'r', ...
+         'DisplayName', sprintf('Vrm = %.1f kt', Vrm));
+
+    % Ponto da missão (apenas em subida/descida; omitido se RoC_m == 0)
+    if ~isempty(RoC_m) && RoC_m ~= 0
+        plot(Vy, RoC_m, 'go', 'MarkerFaceColor', 'g', 'MarkerSize', 8, ...
+             'DisplayName', 'Ponto da Missão');
     end
+
+    xlabel('Velocidade Aerodinâmica - TAS (kt)',    'FontWeight', 'bold');
+    ylabel('Razão Vertical (fpm)',                  'FontWeight', 'bold');
+    title(sprintf('Polar de Velocidade | W: %.0f lb | Zp: %.0f ft | Vento: %.0f kt', W, Zp, V_v));
+    legend('Location', 'northeastoutside');
+    xlim([min(-V_v - 10, 0), 180]);
+    ylim([min(Vc_auto) - 500, max(Vc_v) + 500]);
 end

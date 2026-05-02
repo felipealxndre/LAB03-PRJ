@@ -196,6 +196,14 @@ A polar mostra a curva de máxima razão de subida (envelope superior) e a curva
 
 ---
 
+### Decomposição de potência — Caso 1, Fase 3 (Nivelado na VDM, 5 000 ft)
+
+![Decomposição de potência F3 — CASO 1](results/AH1S/CASO1/Decomp_Fase3_Nivelado_VDM_Zp5000ft.png)
+
+A decomposição evidencia como cada componente evolui com a velocidade: a potência induzida cai com o aumento de $V$ (efeito do aumento de $\mu$), enquanto a parasita cresce cubicamente. A potência de perfil cresce moderadamente. O ponto de mínimo da curva total coincide com a **VAM ≈ 70,3 kt**.
+
+---
+
 ## Dependências
 
 - **MATLAB** ≥ R2020a  **ou**  **GNU Octave** ≥ 6.0
