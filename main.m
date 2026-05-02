@@ -19,15 +19,6 @@ casos = [ ...           %  id | V_vento(kt) | dist(NM) | Vc_sub(fpm)
     3,    0,   400,  2000 ; ...
     4,    0,   440,  1000 ];
 
-% ── AlphaOne ─────────────────────────────────────────────────────────────
-% heli         = jsondecode(fileread(fullfile(fileparts(mfilename('fullpath')), 'config', 'heli_params_alphaone.json')));
-% output_base  = fullfile(fileparts(mfilename('fullpath')), 'results', 'AlphaOne');
-% fase3_VDM    = true;    % F3 = cruzeiro na VDM, F4 = loiter na VAM
-% tempo_loiter = 20;      % [min]
-% casos = [ ...
-%     1,    0,  300,  1000 ; ...
-%     2,  -20,  300,  1000 ];
-
 heli.A         = pi * heli.R^2;
 heli.P_disp_kw = heli.P_disp_hp * 0.7457;
 plotar         = false;   % true → gera figuras no MATLAB; false → só exporta dados
@@ -86,7 +77,7 @@ for k = 1 : size(casos, 1)
     %   4.º saída = VDM — velocidade de MAIOR ALCANCE  (Distância Máxima)
     %   5.º saída = VAM — velocidade de MAIOR AUTONOMIA (Autonomia Máxima)
     if fase3_VDM
-        % AlphaOne: F3 = distância na VDM, F4 = loiter na VAM
+        % F3 = distância na VDM, F4 = loiter na VAM
         [polar(3), cruzeiro(3), ~, V_f3, ~, ~, ~] = ...
             analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
         nome_f3 = 'Nivelado na VDM';

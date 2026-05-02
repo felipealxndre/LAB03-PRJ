@@ -23,8 +23,7 @@ LAB 03/
 │   └── plotar_caso.py            # Gera os gráficos PNG a partir de dados.json
 │
 ├── config/
-│   ├── heli_params.json          # Parâmetros do AH-1S Cobra
-│   └── heli_params_alphaone.json # Parâmetros do AlphaOne
+│   └── heli_params.json          # Parâmetros do AH-1S Cobra
 │
 └── results/AH1S/
     └── CASO{1..4}/
