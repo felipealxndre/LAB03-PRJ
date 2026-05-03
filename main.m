@@ -38,8 +38,7 @@ for k = 1 : size(casos, 1)
                            'P_vert',0,'P_misc',0,'P_tot',0,'vel',0,'comb',0), 1, 6);
     W_atual          = heli.MTOW;
     total_comb_gasto = 0;
-    polar    = [];
-    cruzeiro = [];
+    clear polar cruzeiro;
 
     % Fase 1 — pairado inicial IGE
     W_antes = W_atual;
