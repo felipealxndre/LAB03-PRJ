@@ -54,7 +54,7 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
 
     if ~plotar, return; end
 
-    figure('Color', 'w', 'Name', sprintf('Polar de Velocidade | %.0f lb | %.0f ft', W, Zp));
+    fig = figure('Color', 'w', 'Name', sprintf('Polar de Velocidade | %.0f lb | %.0f ft', W, Zp));
     hold on; grid on;
     plot(V_tas, vZ,      'b', 'LineWidth', 2, 'DisplayName', 'Envelope de Subida (PMC)');
     plot(V_tas, vZ_auto, 'r', 'LineWidth', 2, 'DisplayName', 'Autorrotação (sem motor)');
@@ -88,6 +88,6 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
 
     if ~isempty(pasta_fig) && ~isempty(fase_label)
         if ~exist(pasta_fig, 'dir'), mkdir(pasta_fig); end
-        saveas(gcf, fullfile(pasta_fig, sprintf('Polar_%s.png', fase_label)));
+        saveas(fig, fullfile(pasta_fig, sprintf('Polar_%s.png', fase_label)));
     end
 end

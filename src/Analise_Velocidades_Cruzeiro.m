@@ -68,7 +68,7 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     if ~plotar_grafico, return; end
 
     % Balanço P(V) com VDM, VAM e V_max marcados
-    figure('Color', 'w', 'Name', sprintf('Balanço de Potência | %.0f lb | %.0f ft', W, Zp));
+    fig1 = figure('Color', 'w', 'Name', sprintf('Balanço de Potência | %.0f lb | %.0f ft', W, Zp));
     hold on; grid on;
     plot(V_tas_kt, P_tot_hp, 'b-', 'LineWidth', 2, 'DisplayName', 'P_{tot} — Necessária');
     yline(P_disp_hp,         'r-', 'LineWidth', 2, 'DisplayName', 'P_{disp} — Disponível');
@@ -88,11 +88,11 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
 
     if ~isempty(pasta_fig) && ~isempty(fase_label)
         if ~exist(pasta_fig, 'dir'), mkdir(pasta_fig); end
-        saveas(gcf, fullfile(pasta_fig, sprintf('Balanco_%s.png', fase_label)));
+        saveas(fig1, fullfile(pasta_fig, sprintf('Balanco_%s.png', fase_label)));
     end
 
     % Decomposição de P_tot (reusa os vetores da varredura)
-    figure('Color', 'w', 'Name', sprintf('Decomposição de Potência | %.0f lb | %.0f ft', W, Zp));
+    fig2 = figure('Color', 'w', 'Name', sprintf('Decomposição de Potência | %.0f lb | %.0f ft', W, Zp));
     hold on; grid on;
     plot(V_tas_kt, P_ind_hp,  'g-',  'LineWidth', 2, 'DisplayName', 'P_{ind} — Induzida');
     plot(V_tas_kt, P_perf_hp, 'c-',  'LineWidth', 2, 'DisplayName', 'P_{perf} — Perfil');
@@ -108,6 +108,6 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     ylim([0, P_disp_hp * 1.15]);
 
     if ~isempty(pasta_fig) && ~isempty(fase_label)
-        saveas(gcf, fullfile(pasta_fig, sprintf('Decomp_%s.png', fase_label)));
+        saveas(fig2, fullfile(pasta_fig, sprintf('Decomp_%s.png', fase_label)));
     end
 end
