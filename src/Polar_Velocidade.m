@@ -1,4 +1,4 @@
-function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v)
+function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v, pasta_fig, fase_label)
     % POLAR_VELOCIDADE  Envelope de desempenho vertical: curva de subida na PMC
     % e curva de autorrotação, com as velocidades notáveis correspondentes.
     %
@@ -15,6 +15,8 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
     %   Vy, Vzmax                máxima razão de subida e valor no pico
     %   Vvm, Vrm, VrM            velocidades notáveis de razão e rampa
 
+    if nargin < 10, fase_label = ''; end
+    if nargin < 9,  pasta_fig  = ''; end
     if nargin < 8 || isempty(V_v), V_v = 0;  end
     if nargin < 7,                 V_a = []; end
 
@@ -83,4 +85,9 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
     legend('Location', 'northeastoutside');
     xlim([min(-V_v - 10, 0), 180]);
     ylim([min(vZ_auto) - 500, max(vZ) + 500]);
+
+    if ~isempty(pasta_fig) && ~isempty(fase_label)
+        if ~exist(pasta_fig, 'dir'), mkdir(pasta_fig); end
+        saveas(gcf, fullfile(pasta_fig, sprintf('Polar_%s.png', fase_label)));
+    end
 end

@@ -1,4 +1,4 @@
-function [polar, cruzeiro, Vy, VDM, VAM, Vvm, Vrm] = analisar_fase(W, Zp, dT, heli, Vc_fpm, V_vento, plotar)
+function [polar, cruzeiro, Vy, VDM, VAM, Vvm, Vrm] = analisar_fase(W, Zp, dT, heli, Vc_fpm, V_vento, plotar, pasta_fig, fase_label)
     % ANALISAR_FASE  Roda a polar vertical e o balanço de cruzeiro para um
     % dado estado de peso/altitude, e empacota os dois em structs para o JSON.
     %
@@ -8,11 +8,14 @@ function [polar, cruzeiro, Vy, VDM, VAM, Vvm, Vrm] = analisar_fase(W, Zp, dT, he
     %             VDM, VAM e V_max
     %   Vy, VDM, VAM, Vvm, Vrm  velocidades notáveis [kt]
 
+    if nargin < 8, pasta_fig  = ''; end
+    if nargin < 9, fase_label = ''; end
+
     [V_pol, ~, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = ...
-        Polar_Velocidade(W, Zp, dT, heli, Vc_fpm, plotar, [], V_vento);
+        Polar_Velocidade(W, Zp, dT, heli, Vc_fpm, plotar, [], V_vento, pasta_fig, fase_label);
 
     [VDM, VAM, V_max, V_tas, P_tot_hp, P_ind, P_perf, P_par, P_misc] = ...
-        Analise_Velocidades_Cruzeiro(W, Zp, dT, heli, V_vento, plotar);
+        Analise_Velocidades_Cruzeiro(W, Zp, dT, heli, V_vento, plotar, pasta_fig, fase_label);
 
     polar = struct('W', W, 'Zp', Zp, 'dT', dT, ...
                    'V_tas',   V_pol,   ...

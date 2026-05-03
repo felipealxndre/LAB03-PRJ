@@ -17,7 +17,7 @@ casos = [ ...           %  id | V_vento(kt) | dist(NM) | Vc_sub(fpm)
 
 heli.A         = pi * heli.R^2;
 heli.P_disp_kw = heli.P_disp_hp * 0.7457;
-plotar         = false;
+plotar         = true;   % gera e salva figuras MATLAB em results/
 
 dT = 20;   % desvio ISA [°C]
 
@@ -38,8 +38,8 @@ for k = 1 : size(casos, 1)
                            'P_vert',0,'P_misc',0,'P_tot',0,'vel',0,'comb',0), 1, 6);
     W_atual          = heli.MTOW;
     total_comb_gasto = 0;
-    polar            = struct([]);
-    cruzeiro         = struct([]);
+    polar    = [];
+    cruzeiro = [];
 
     % Fase 1 — pairado inicial IGE
     W_antes = W_atual;
@@ -52,7 +52,7 @@ for k = 1 : size(casos, 1)
     tempo_2 = 5000 / Vc_sub_fpm;
 
     [polar(2), cruzeiro(2), Vy_2, ~, ~, ~, ~] = ...
-        analisar_fase(W_atual, Zp_2, dT, heli, Vc_sub_fpm, V_vento, plotar);
+        analisar_fase(W_atual, Zp_2, dT, heli, Vc_sub_fpm, V_vento, plotar, output_folder, 'F2');
 
     W_antes = W_atual;
     [potencias, W_atual] = Calcular_Fase(W_atual, inf, Zp_2, dT, heli, Vy_2, Vc_sub_fpm, tempo_2, true);
@@ -62,12 +62,12 @@ for k = 1 : size(casos, 1)
     % Fases 3 e 4 — cruzeiro + loiter
     if fase3_VDM
         [polar(3), cruzeiro(3), ~, V_f3, ~, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F3');
         nome_f3 = 'Nivelado na VDM';
         nome_f4 = 'Nivelado na VAM';
     else
         [polar(3), cruzeiro(3), ~, ~, V_f3, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F3');
         nome_f3 = 'Nivelado na VAM';
         nome_f4 = 'Nivelado na VDM';
     end
@@ -83,10 +83,10 @@ for k = 1 : size(casos, 1)
     % F4 é recalculada após F3 para usar o peso já reduzido pelo cruzeiro
     if fase3_VDM
         [polar(4), cruzeiro(4), ~, ~, V_f4, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F4');
     else
         [polar(4), cruzeiro(4), ~, V_f4, ~, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F4');
     end
 
     W_antes = W_atual;
@@ -99,7 +99,7 @@ for k = 1 : size(casos, 1)
     tempo_5 = 5000 / 1000;
 
     [polar(5), cruzeiro(5), Vy_5, ~, ~, ~, ~] = ...
-        analisar_fase(W_atual, Zp_5, dT, heli, -1000, V_vento, plotar);
+        analisar_fase(W_atual, Zp_5, dT, heli, -1000, V_vento, plotar, output_folder, 'F5');
 
     W_antes = W_atual;
     [potencias, W_atual] = Calcular_Fase(W_atual, inf, Zp_5, dT, heli, Vy_5, -1000, tempo_5, true);
@@ -114,6 +114,7 @@ for k = 1 : size(casos, 1)
 
     params = struct('Vc_sub_fpm', Vc_sub_fpm, 'distancia_NM', distancia_3);
     Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, polar, cruzeiro, output_folder, params);
+    close all;
 end
 
 fprintf('\nTodos os casos concluídos.\n');
