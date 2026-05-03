@@ -88,7 +88,7 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
 
     if ~isempty(pasta_fig) && ~isempty(fase_label)
         if ~exist(pasta_fig, 'dir'), mkdir(pasta_fig); end
-        saveas(fig1, fullfile(pasta_fig, sprintf('Balanco_%s.png', fase_label)));
+        exportgraphics(fig1, fullfile(pasta_fig, sprintf('Balanco_%s.png', fase_label)));
     end
 
     % Decomposição de P_tot (reusa os vetores da varredura)
@@ -108,6 +108,6 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     ylim([0, P_disp_hp * 1.15]);
 
     if ~isempty(pasta_fig) && ~isempty(fase_label)
-        saveas(fig2, fullfile(pasta_fig, sprintf('Decomp_%s.png', fase_label)));
+        exportgraphics(fig2, fullfile(pasta_fig, sprintf('Decomp_%s.png', fase_label)));
     end
 end

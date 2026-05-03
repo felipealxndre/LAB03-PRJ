@@ -88,6 +88,6 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
 
     if ~isempty(pasta_fig) && ~isempty(fase_label)
         if ~exist(pasta_fig, 'dir'), mkdir(pasta_fig); end
-        saveas(fig, fullfile(pasta_fig, sprintf('Polar_%s.png', fase_label)));
+        exportgraphics(fig, fullfile(pasta_fig, sprintf('Polar_%s.png', fase_label)));
     end
 end
