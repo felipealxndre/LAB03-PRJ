@@ -51,7 +51,7 @@ for k = 1 : size(casos, 1)
     tempo_2 = 5000 / Vc_sub_fpm;
 
     [polar(2), cruzeiro(2), Vy_2, ~, ~, ~, ~] = ...
-        analisar_fase(W_atual, Zp_2, dT, heli, Vc_sub_fpm, V_vento, plotar, output_folder, 'F2');
+        analisar_fase(W_atual, Zp_2, dT, heli, Vc_sub_fpm, V_vento, plotar);
 
     W_antes = W_atual;
     [potencias, W_atual] = Calcular_Fase(W_atual, inf, Zp_2, dT, heli, Vy_2, Vc_sub_fpm, tempo_2, true);
@@ -61,12 +61,12 @@ for k = 1 : size(casos, 1)
     % Fases 3 e 4 — cruzeiro + loiter
     if fase3_VDM
         [polar(3), cruzeiro(3), ~, V_f3, ~, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F3');
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
         nome_f3 = 'Nivelado na VDM';
         nome_f4 = 'Nivelado na VAM';
     else
         [polar(3), cruzeiro(3), ~, ~, V_f3, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F3');
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
         nome_f3 = 'Nivelado na VAM';
         nome_f4 = 'Nivelado na VDM';
     end
@@ -82,10 +82,10 @@ for k = 1 : size(casos, 1)
     % F4 é recalculada após F3 para usar o peso já reduzido pelo cruzeiro
     if fase3_VDM
         [polar(4), cruzeiro(4), ~, ~, V_f4, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F4');
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
     else
         [polar(4), cruzeiro(4), ~, V_f4, ~, ~, ~] = ...
-            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar, output_folder, 'F4');
+            analisar_fase(W_atual, 5000, dT, heli, 0, V_vento, plotar);
     end
 
     W_antes = W_atual;
@@ -98,7 +98,7 @@ for k = 1 : size(casos, 1)
     tempo_5 = 5000 / 1000;
 
     [polar(5), cruzeiro(5), Vy_5, ~, ~, ~, ~] = ...
-        analisar_fase(W_atual, Zp_5, dT, heli, -1000, V_vento, plotar, output_folder, 'F5');
+        analisar_fase(W_atual, Zp_5, dT, heli, -1000, V_vento, plotar);
 
     W_antes = W_atual;
     [potencias, W_atual] = Calcular_Fase(W_atual, inf, Zp_5, dT, heli, Vy_5, -1000, tempo_5, true);

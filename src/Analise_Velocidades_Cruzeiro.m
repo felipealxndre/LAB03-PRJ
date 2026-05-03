@@ -1,4 +1,4 @@
-function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out, P_par_hp_out, P_misc_hp_out] = Analise_Velocidades_Cruzeiro(W, Zp, delta_ISA, heli, V_vento_kt, plotar_grafico, pasta_fig, fase_label)
+function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out, P_par_hp_out, P_misc_hp_out] = Analise_Velocidades_Cruzeiro(W, Zp, delta_ISA, heli, V_vento_kt, plotar_grafico)
     % ANALISE_VELOCIDADES_CRUZEIRO  Curvas de potência no cruzeiro nivelado e
     % velocidades notáveis (VAM, VDM, V_max).
     %
@@ -11,9 +11,6 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     %   VDM, VAM, V_max                  [kt]
     %   V_tas_out                        TAS varrido [kt]
     %   P_tot_hp_out e componentes       [hp]
-
-    if nargin < 8, fase_label = ''; end
-    if nargin < 7, pasta_fig  = ''; end
 
     P_disp_hp = heli.P_disp_hp;
 
@@ -68,7 +65,7 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     if ~plotar_grafico, return; end
 
     % Balanço P(V) com VDM, VAM e V_max marcados
-    fig1 = figure('Color', 'w', 'Name', sprintf('Balanço de Potência | %.0f lb | %.0f ft', W, Zp));
+    figure('Color', 'w', 'Name', sprintf('Balanço de Potência | %.0f lb | %.0f ft', W, Zp));
     hold on; grid on;
     plot(V_tas_kt, P_tot_hp, 'b-', 'LineWidth', 2, 'DisplayName', 'P_{tot} — Necessária');
     yline(P_disp_hp,         'r-', 'LineWidth', 2, 'DisplayName', 'P_{disp} — Disponível');
@@ -86,13 +83,8 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     xlim([0 200]);
     ylim([0, P_disp_hp * 1.15]);
 
-    if ~isempty(pasta_fig) && ~isempty(fase_label)
-        if ~exist(pasta_fig, 'dir'), mkdir(pasta_fig); end
-        exportgraphics(fig1, fullfile(pasta_fig, sprintf('Balanco_%s.png', fase_label)));
-    end
-
     % Decomposição de P_tot (reusa os vetores da varredura)
-    fig2 = figure('Color', 'w', 'Name', sprintf('Decomposição de Potência | %.0f lb | %.0f ft', W, Zp));
+    figure('Color', 'w', 'Name', sprintf('Decomposição de Potência | %.0f lb | %.0f ft', W, Zp));
     hold on; grid on;
     plot(V_tas_kt, P_ind_hp,  'g-',  'LineWidth', 2, 'DisplayName', 'P_{ind} — Induzida');
     plot(V_tas_kt, P_perf_hp, 'c-',  'LineWidth', 2, 'DisplayName', 'P_{perf} — Perfil');
@@ -107,7 +99,4 @@ function [VDM, VAM, V_max, V_tas_out, P_tot_hp_out, P_ind_hp_out, P_perf_hp_out,
     xlim([0 200]);
     ylim([0, P_disp_hp * 1.15]);
 
-    if ~isempty(pasta_fig) && ~isempty(fase_label)
-        exportgraphics(fig2, fullfile(pasta_fig, sprintf('Decomp_%s.png', fase_label)));
-    end
 end
