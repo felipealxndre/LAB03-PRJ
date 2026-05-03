@@ -113,7 +113,6 @@ for k = 1 : size(casos, 1)
 
     params = struct('Vc_sub_fpm', Vc_sub_fpm, 'distancia_NM', distancia_3);
     Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, polar, cruzeiro, output_folder, params);
-    close all;
 end
 
 fprintf('\nTodos os casos concluídos.\n');
