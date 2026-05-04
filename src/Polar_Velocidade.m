@@ -1,4 +1,4 @@
-function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v)
+function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM, Vzmin] = Polar_Velocidade(W, Zp, dI, heli, RoC_m, plotar, V_a, V_v)
     % POLAR_VELOCIDADE  Envelope de desempenho vertical: curva de subida na PMC
     % e curva de autorrotação, com as velocidades notáveis correspondentes.
     %
@@ -50,6 +50,8 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
     [~, idx_Vrm] = max(gama_d);
     Vrm          = V_tas(idx_Vrm);
 
+    Vzmin = vZ_auto(idx_Vvm);   % razão de descida mínima (menos negativa) em autorrotação
+
     if ~plotar, return; end
 
     figure('Color', 'w', 'Name', sprintf('Polar de Velocidade | %.0f lb | %.0f ft', W, Zp));
@@ -63,8 +65,14 @@ function [V_tas, V_gs, vZ, Vy, Vzmax, Vvm, Vrm, vZ_auto, VrM] = Polar_Velocidade
     plot([-V_v, VrM], [0, vZ(idx_VrM)],      'b--', 'HandleVisibility', 'off');
     plot([-V_v, Vrm], [0, vZ_auto(idx_Vrm)], 'r--', 'HandleVisibility', 'off');
 
+    Vzmin = vZ_auto(idx_Vvm);
+    yline(Vzmax, 'b:', 'LineWidth', 1.2, ...
+          'DisplayName', sprintf('Vz máx = %.0f fpm', Vzmax));
+    yline(Vzmin, 'r:', 'LineWidth', 1.2, ...
+          'DisplayName', sprintf('Vz mín = %.0f fpm', Vzmin));
+
     plot(Vy,  vZ(idx_Vy),       'b*', 'MarkerSize', 10, ...
-         'DisplayName', sprintf('Vy  = %.1f kt  (Vzmax = %.0f fpm)', Vy, Vzmax));
+         'DisplayName', sprintf('Vy  = %.1f kt', Vy));
     plot(VrM, vZ(idx_VrM),      'bo', 'MarkerFaceColor', 'b', ...
          'DisplayName', sprintf('VrM = %.1f kt', VrM));
     plot(Vvm, vZ_auto(idx_Vvm), 'r*', 'MarkerSize', 10, ...

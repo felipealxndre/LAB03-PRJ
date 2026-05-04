@@ -194,6 +194,7 @@ def plot_polar(dado: dict, caso: int, fase: int, V_vento: float, pasta: str):
     Vvm     = float(dado["Vvm"])
     Vrm     = float(dado["Vrm"])
     Vzmax   = float(dado["Vzmax"])
+    Vzmin   = float(dado.get("Vzmin", float(Vc_auto[int(np.argmax(Vc_auto))])))
     W       = float(dado["W"])
     Zp      = float(dado["Zp"])
 
@@ -234,7 +235,7 @@ def plot_polar(dado: dict, caso: int, fase: int, V_vento: float, pasta: str):
 
     # Texto no eixo x indicando a origem das tangentes (abaixo do eixo, sem caixa)
     if V_vento != 0:
-        ax.text(orig, 0, f"$V_{{vento}}$={abs(V_vento):.0f} kt",
+        ax.text(orig, 0.05 * float(Vc_auto.min()), f"$V_{{vento}}$={abs(V_vento):.0f} kt",
                 color="red", fontsize=8.5, ha="center", va="top")
 
     # ── Retas tangentes (vermelhas) ───────────────────────────────────────────
@@ -266,17 +267,21 @@ def plot_polar(dado: dict, caso: int, fase: int, V_vento: float, pasta: str):
     ax.plot(Vrm, Vc_auto[idx_Vrm], "s", label=f"$V_{{rm}}$ = {Vrm:.1f} kt",   **mk_tan)
 
     # ── Legenda: nomes das curvas + velocidades (+ vento se aplicável) ──────────
-    h_climb = mlines.Line2D([], [], color=COR_POLAR, lw=2.0,
-                            label="Subida na PMC")
-    h_auto  = mlines.Line2D([], [], color=COR_POLAR, lw=1.8, ls="--",
-                            label="Descida em Autorrotação")
+    h_climb  = mlines.Line2D([], [], color=COR_POLAR, lw=2.0,
+                             label="Subida na PMC")
+    h_auto   = mlines.Line2D([], [], color=COR_POLAR, lw=1.8, ls="--",
+                             label="Descida em Autorrotação")
+    h_vzmax  = mlines.Line2D([], [], color="gray", lw=0.9, ls=":",
+                             label=f"$V_{{z,máx}}$ = {Vzmax:.0f} ft/min")
+    h_vzmin  = mlines.Line2D([], [], color="gray", lw=0.9, ls=":",
+                             label=f"$V_{{z,mín}}$ = {Vzmin:.0f} ft/min")
     extra = []
     if V_vento != 0:
         descricao = "proa" if V_vento < 0 else "cauda"
         extra = [mlines.Line2D([], [], lw=0, ms=0,
                                label=f"$V_{{vento}}$ = {abs(V_vento):.0f} kt ({descricao})")]
     handles, _ = ax.get_legend_handles_labels()
-    ax.legend(handles=[h_climb, h_auto] + extra + handles,
+    ax.legend(handles=[h_climb, h_auto, h_vzmax, h_vzmin] + extra + handles,
               loc="upper right", frameon=True)
 
     ax.set_xlabel("Velocidade Verdadeira (kt)")

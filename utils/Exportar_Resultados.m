@@ -24,14 +24,14 @@ function Exportar_Resultados(caso, V_vento, heli, missao, total_comb_gasto, pola
     margem = heli.fuel_cap - total_comb_gasto;
 
     escrever_txt(fullfile(pasta_saida, 'resultado.txt'), ...
-                 caso, V_vento, heli, missao, total_comb_gasto, margem);
+                 caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro);
 
     escrever_json(fullfile(pasta_saida, 'dados.json'), ...
                   caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro, params);
 end
 
 
-function escrever_txt(caminho, caso, V_vento, heli, missao, total_comb_gasto, margem)
+function escrever_txt(caminho, caso, V_vento, heli, missao, total_comb_gasto, margem, polar, cruzeiro)
     fid = fopen(caminho, 'w');
     if fid < 0
         error('Não foi possível abrir o arquivo: %s', caminho);
@@ -83,6 +83,46 @@ function escrever_txt(caminho, caso, V_vento, heli, missao, total_comb_gasto, ma
     else
         fprintf(fid, 'VERIFICAÇÃO DE COMBUSTÍVEL: FALHA - Combustível insuficiente (faltaram %.2f lb).\n', abs(margem));
     end
+
+    % Tabela de velocidades características (fases 2–5)
+    sep2 = repmat('-', 1, 90);
+    fprintf(fid, '\n%s\n', repmat('=', 1, 90));
+    fprintf(fid, '                    TABELA DE VELOCIDADES CARACTERÍSTICAS (Fases 2 a 5)\n');
+    fprintf(fid, '%s\n', repmat('=', 1, 90));
+    fprintf(fid, 'Fase | Nome                 |   Vy   |  VAM   |  VDM   |  Vvm   | Vz,max  | Vz,min  \n');
+    fprintf(fid, '     |                      |  (kt)  |  (kt)  |  (kt)  |  (kt)  |  (fpm)  |  (fpm)  \n');
+    fprintf(fid, '%s\n', sep2);
+
+    nomes_fase = {missao(2).nome, missao(3).nome, missao(4).nome, missao(5).nome};
+    for fi = 2:5
+        p = polar(fi);
+        c = cruzeiro(fi);
+        Vy_str  = fmt_vel(p.Vy,   p.Vy  > 0);
+        VAM_str = fmt_vel(c.VAM,  true);
+        VDM_str = fmt_vel(c.VDM,  true);
+        Vvm_str = fmt_vel(p.Vvm,  true);
+
+        % Vy só aparece em fases de subida/descida (Vc ≠ 0)
+        if fi == 3 || fi == 4
+            Vy_str = '  -   ';
+        end
+        % VAM só relevante na fase de loiter
+        if fi ~= 4
+            VAM_str = '  -   ';
+        end
+        % VDM só relevante na fase de cruzeiro
+        if fi ~= 3
+            VDM_str = '  -   ';
+        end
+
+        fprintf(fid, '  %d  | %-20s | %s | %s | %s | %s | %7.0f  | %7.0f  \n', ...
+            fi, nomes_fase{fi-1}, Vy_str, VAM_str, VDM_str, Vvm_str, p.Vzmax, p.Vzmin);
+    end
+    fprintf(fid, '%s\n', sep2);
+end
+
+function s = fmt_vel(v, ~)
+    s = sprintf('%6.1f', v);
 end
 
 
