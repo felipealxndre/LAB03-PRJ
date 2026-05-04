@@ -213,10 +213,10 @@ Chama `Polar_Velocidade` e `Analise_Velocidades_Cruzeiro` em sequência para uma
 
 | Caso | Vento | Dist. | $V_c$ sub. | Comb. gasto (lb) | Margem (lb) | Potência | Combustível |
 |---|---|---|---|---|---|---|---|
-| 1 | 0 kt | 400 NM | 1 000 fpm | 1 554,13 | +129,87 | ✅ | ✅ |
-| 2 | −15 kt | 400 NM | 1 000 fpm | 1 735,22 | −51,22 | ✅ | ❌ |
-| 3 | 0 kt | 400 NM | 2 000 fpm | 1 541,86 | +142,14 | ❌ | ✅ |
-| 4 | 0 kt | 440 NM | 1 000 fpm | 1 675,98 | +8,02 | ✅ | ✅ |
+| 1 | 0 kt | 400 NM | 1 000 fpm | 1 554,37 | +129,63 | ✅ | ✅ |
+| 2 | −15 kt | 400 NM | 1 000 fpm | 1 735,46 | −51,46 | ✅ | ❌ |
+| 3 | 0 kt | 400 NM | 2 000 fpm | 1 542,09 | +141,91 | ❌ | ✅ |
+| 4 | 0 kt | 440 NM | 1 000 fpm | 1 676,21 | +7,79 | ✅ | ✅ |
 
 > **Caso 2** — vento de proa reduz $V_{GS}$ → tempo de cruzeiro em F3 aumenta → combustível insuficiente.  
 > **Caso 3** — $V_c = 2\,000$ fpm exige potência superior à disponível ($1\,290$ hp) → subida inviável.  
